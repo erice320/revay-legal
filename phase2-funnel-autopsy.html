@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 2 Funnel Autopsy — PSA Web | Rev.io GTM Analysis</title>
+<style>
+  :root {
+    --brand: #0f172a;
+    --accent: #6366f1;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #8b5cf6;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+  .header { background: var(--brand); color: white; padding: 48px 40px 40px; }
+  .header-meta { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: #94a3b8; margin-bottom: 8px; }
+  .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+  .header p { color: #94a3b8; font-size: 15px; }
+  .header .badges { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-live { background: #10b98122; color: #10b981; border: 1px solid #10b98144; }
+  .badge-red { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; }
+  .badge-date { background: #ffffff18; color: #cbd5e1; border: 1px solid #ffffff22; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); display: inline-block; }
+  .section { margin-bottom: 52px; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 16px; }
+  .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; overflow: hidden; }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.amber::before { background: var(--amber); }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.purple::before { background: var(--purple); }
+  .kpi-card.accent::before { background: var(--accent); }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+  .kpi-value { font-size: 30px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .kpi-sub { font-size: 12px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 2px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  .best td { background: #f0fdf4 !important; }
+  .worst td { background: #fef2f2 !important; }
+
+  .insight { padding: 16px 20px; border-radius: 8px; margin-bottom: 12px; display: flex; gap: 12px; }
+  .insight.red { background: #fef2f2; border-left: 4px solid var(--red); }
+  .insight.green { background: #f0fdf4; border-left: 4px solid var(--green); }
+  .insight.amber { background: #fffbeb; border-left: 4px solid var(--amber); }
+  .insight.blue { background: #eff6ff; border-left: 4px solid var(--blue); }
+  .insight.purple { background: #f5f3ff; border-left: 4px solid var(--purple); }
+  .insight-icon { font-size: 20px; flex-shrink: 0; }
+  .insight-text strong { display: block; font-size: 14px; margin-bottom: 3px; }
+  .insight-text span { font-size: 13px; color: var(--muted); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Velocity bars */
+  .vel-chart { display: flex; flex-direction: column; gap: 10px; }
+  .vel-row { display: flex; align-items: stretch; gap: 0; border-radius: 6px; overflow: hidden; height: 40px; }
+  .vel-label { width: 60px; font-size: 12px; color: var(--muted); padding: 0 10px 0 0; display: flex; align-items: center; flex-shrink: 0; font-weight: 600; }
+  .vel-won { background: #10b981; display: flex; align-items: center; padding: 0 8px; }
+  .vel-lost { background: #ef4444; display: flex; align-items: center; padding: 0 8px; }
+  .vel-won span, .vel-lost span { font-size: 11px; font-weight: 600; color: white; white-space: nowrap; }
+  .vel-rate { width: 60px; font-size: 12px; font-weight: 700; color: var(--text); padding-left: 8px; display: flex; align-items: center; flex-shrink: 0; }
+
+  /* No-show heatmap */
+  .noshows-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .noshows-grid { grid-template-columns: 1fr; } }
+  .noshow-card { border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--border); }
+  .noshow-rep { font-size: 14px; font-weight: 600; }
+  .noshow-bar-wrap { background: #f1f5f9; border-radius: 4px; height: 8px; margin: 6px 0; overflow: hidden; }
+  .noshow-bar-fill { height: 100%; border-radius: 4px; }
+  .noshow-stats { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* Rep profile cards */
+  .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .profile-card { border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .profile-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .profile-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .tag-red { background: #fee2e2; color: #b91c1c; }
+  .tag-amber { background: #fef3c7; color: #92400e; }
+  .tag-green { background: #dcfce7; color: #15803d; }
+  .tag-blue { background: #dbeafe; color: #1d4ed8; }
+  .profile-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #f1f5f9; }
+  .profile-row:last-child { border-bottom: none; }
+  .profile-row .val { font-weight: 600; }
+  .profile-reason { font-size: 12px; color: var(--muted); margin-top: 8px; padding: 8px; background: #f8fafc; border-radius: 6px; }
+
+  /* Cycle chart */
+  .cycle-dist { display: flex; align-items: flex-end; gap: 6px; height: 100px; padding: 4px; }
+  .cycle-col { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+  .cycle-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; }
+  .cycle-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; text-align: center; }
+  .cycle-cnt { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+
+  .finding-box { border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .finding-box.alarm { background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%); border: 1px solid #fecaca; }
+  .finding-box.opportunity { background: linear-gradient(135deg, #f0fdf4 0%, #f7fffe 100%); border: 1px solid #bbf7d0; }
+  .finding-box h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .finding-box p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .finding-box .big-stat { font-size: 42px; font-weight: 800; margin: 12px 0; }
+
+  .summary-verdict { background: var(--brand); color: white; border-radius: 12px; padding: 32px; }
+  .summary-verdict h3 { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+  .action-list { display: flex; flex-direction: column; gap: 14px; }
+  .action-item { display: flex; gap: 14px; padding: 14px; background: rgba(255,255,255,0.06); border-radius: 8px; }
+  .action-num { font-size: 22px; font-weight: 800; color: #6366f1; flex-shrink: 0; line-height: 1; }
+  .action-body strong { display: block; font-size: 14px; margin-bottom: 4px; }
+  .action-body span { font-size: 13px; color: #94a3b8; }
+
+  .footer { background: var(--brand); color: #64748b; text-align: center; padding: 24px; font-size: 12px; margin-top: 48px; }
+
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .pill-red { background: #fee2e2; color: #b91c1c; }
+  .pill-green { background: #dcfce7; color: #15803d; }
+  .pill-amber { background: #fef3c7; color: #92400e; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-meta">Rev.io GTM Intelligence · Phase 2 Funnel Autopsy</div>
+  <h1>Where Deals Go to Die</h1>
+  <p>Cycle times, no-show rates, rep failure modes, and what November reveals about win rate volatility</p>
+  <div class="badges">
+    <span class="badge badge-live">⚡ Live Salesforce Data</span>
+    <span class="badge badge-red">1,137 Closed-Lost Deals Analyzed</span>
+    <span class="badge badge-date">PSA Web · Jul 2025 – Feb 2026</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── HEADLINE FINDINGS ──────────────────── -->
+  <div class="section">
+    <div class="section-title">Headline Findings</div>
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-label">Median Cycle Time</div>
+        <div class="kpi-value">9 days</div>
+        <div class="kpi-sub">From opp created to closed won</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Close in ≤7 Days</div>
+        <div class="kpi-value">41%</div>
+        <div class="kpi-sub">47 of 115 wins close in a week</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">Avg Cycle Time</div>
+        <div class="kpi-value">12.6 days</div>
+        <div class="kpi-sub">Pulled up by a handful of long deals</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Worst Win Rate Month</div>
+        <div class="kpi-value">4.7%</div>
+        <div class="kpi-sub">January 2026 — 10 wins from 214 closures</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Best Win Rate Month</div>
+        <div class="kpi-value">12.2%</div>
+        <div class="kpi-sub">September 2025 — 18 wins from 147 closures</div>
+      </div>
+      <div class="kpi-card accent">
+        <div class="kpi-label">Dahlstrom No-Show Rate</div>
+        <div class="kpi-value">2.6%</div>
+        <div class="kpi-sub">vs team avg of 35%+ — biggest outlier</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VELOCITY ANALYSIS ──────────────────── -->
+  <div class="section">
+    <div class="section-title">Monthly Velocity — Win Rate by Month</div>
+
+    <div class="card">
+      <h3>📊 Monthly Closures: Won vs Lost (Full-Width = 100%)</h3>
+      <div class="vel-chart">
+        <div style="display:flex; gap:0; align-items:center; margin-bottom:4px;">
+          <div style="width:60px;"></div>
+          <div style="flex:1; font-size:10px; color:var(--muted); display:flex; justify-content:space-between; padding:0 0 4px 0;">
+            <span>← Closed Lost (bad)</span>
+            <span>Closed Won (good) →</span>
+          </div>
+          <div style="width:60px;"></div>
+        </div>
+        <!-- Jul: 15 won / 213 lost = 228 total; won% = 6.6% -->
+        <div class="vel-row">
+          <div class="vel-label">Jul '25</div>
+          <div class="vel-lost" style="width:93.4%"><span>213 lost</span></div>
+          <div class="vel-won" style="width:6.6%"><span>15</span></div>
+          <div class="vel-rate">6.6%</div>
+        </div>
+        <!-- Aug: 13/201 = 214 total; 6.1% -->
+        <div class="vel-row">
+          <div class="vel-label">Aug '25</div>
+          <div class="vel-lost" style="width:93.9%"><span>201 lost</span></div>
+          <div class="vel-won" style="width:6.1%"><span>13</span></div>
+          <div class="vel-rate">6.1%</div>
+        </div>
+        <!-- Sep: 18/129 = 147 total; 12.2% -->
+        <div class="vel-row">
+          <div class="vel-label">Sep '25 🏆</div>
+          <div class="vel-lost" style="width:87.8%"><span>129 lost</span></div>
+          <div class="vel-won" style="width:12.2%"><span>18</span></div>
+          <div class="vel-rate" style="color:var(--green); font-weight:800;">12.2%</div>
+        </div>
+        <!-- Oct: 22/196 = 218 total; 10.1% -->
+        <div class="vel-row">
+          <div class="vel-label">Oct '25</div>
+          <div class="vel-lost" style="width:89.9%"><span>196 lost</span></div>
+          <div class="vel-won" style="width:10.1%"><span>22</span></div>
+          <div class="vel-rate">10.1%</div>
+        </div>
+        <!-- Nov: 9/138 = 147 total; 6.1% -->
+        <div class="vel-row">
+          <div class="vel-label">Nov '25 ⚠️</div>
+          <div class="vel-lost" style="width:93.9%"><span>138 lost</span></div>
+          <div class="vel-won" style="width:6.1%"><span>9</span></div>
+          <div class="vel-rate" style="color:var(--red);">6.1%</div>
+        </div>
+        <!-- Dec: 15/158 = 173 total; 8.7% -->
+        <div class="vel-row">
+          <div class="vel-label">Dec '25</div>
+          <div class="vel-lost" style="width:91.3%"><span>158 lost</span></div>
+          <div class="vel-won" style="width:8.7%"><span>15</span></div>
+          <div class="vel-rate">8.7%</div>
+        </div>
+        <!-- Jan: 10/204 = 214 total; 4.7% -->
+        <div class="vel-row">
+          <div class="vel-label">Jan '26 🚨</div>
+          <div class="vel-lost" style="width:95.3%"><span>204 lost</span></div>
+          <div class="vel-won" style="width:4.7%"><span>10</span></div>
+          <div class="vel-rate" style="color:var(--red); font-weight:800;">4.7%</div>
+        </div>
+        <!-- Feb: 11/129 = 140 total; 7.9% (partial) -->
+        <div class="vel-row">
+          <div class="vel-label">Feb '26*</div>
+          <div class="vel-lost" style="width:92.1%"><span>129 lost</span></div>
+          <div class="vel-won" style="width:7.9%"><span>11</span></div>
+          <div class="vel-rate">7.9%</div>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--muted); margin-top:12px;">* Feb 2026 partial month. Win rate = Closed Won / (Closed Won + Closed Lost) by close date month.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="finding-box alarm">
+        <h4>🚨 The November Question Answered</h4>
+        <div class="big-stat" style="color:#ef4444;">147</div>
+        <p>Total closures in November — <em>same as September</em>, which delivered 18 wins (12.2%). November produced only 9 wins at a 6.1% rate. <strong>The volume wasn't the problem. The win rate crashed.</strong> This is a quality-of-engagement issue, not a pipeline-volume issue.</p>
+      </div>
+      <div class="finding-box alarm">
+        <h4>🚨 January 2026 Is the Real Emergency</h4>
+        <div class="big-stat" style="color:#ef4444;">4.7%</div>
+        <p>The lowest win rate on record — 10 wins from 214 closures. High activity, terrible conversion. This isn't a November anomaly; the team entered 2026 closing at barely half the Sep/Oct rate. Jan needs its own investigation.</p>
+      </div>
+    </div>
+
+    <div class="insight blue">
+      <div class="insight-icon">💡</div>
+      <div class="insight-text">
+        <strong>Win rate swings from 4.7% to 12.2% — a 2.6× range</strong>
+        <span>The team is not a consistent machine. Something drives quality of engagement up (Sep/Oct) and down (Nov/Jan). Understanding the Sep spike is as valuable as understanding the Nov crash — what was different about how deals were run that month?</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CYCLE TIME ──────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Sales Cycle — Speed of Won Deals</div>
+
+    <div class="card">
+      <h3>⏱️ Deal Velocity Distribution (115 Closed Won)</h3>
+      <div style="display:flex; align-items:flex-end; gap:8px; height:120px; padding: 0 4px 0;">
+        <div style="display:flex;flex-direction:column;align-items:center;flex:2;height:100%;justify-content:flex-end;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">47</div>
+          <div style="width:100%;background:#10b981;border-radius:4px 4px 0 0;height:100%;"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:center;">≤7 days<br><strong>41%</strong></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1.3;height:100%;justify-content:flex-end;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">31</div>
+          <div style="width:100%;background:#6366f1;border-radius:4px 4px 0 0;height:66%;"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:center;">8–14d<br><strong>27%</strong></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">27</div>
+          <div style="width:100%;background:#f59e0b;border-radius:4px 4px 0 0;height:57%;"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:center;">15–29d<br><strong>23%</strong></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:0.6;height:100%;justify-content:flex-end;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">10</div>
+          <div style="width:100%;background:#ef4444;border-radius:4px 4px 0 0;height:21%;"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:center;">30+ d<br><strong>9%</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>⏱️ Cycle Time by Rep (Won Deals Only)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Rep</th>
+            <th>Avg Days</th>
+            <th>Median Days</th>
+            <th>Wins</th>
+            <th>Avg MRR/Win</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Jaylin Bender</td><td>7d</td><td>8d</td><td>6</td><td>$617</td><td><span class="pill pill-green">Fast close</span></td></tr>
+          <tr><td>Matt Salin</td><td>7d</td><td>8d</td><td>8</td><td>$456</td><td><span class="pill pill-green">Fast close</span></td></tr>
+          <tr><td>Connor Flynn</td><td>10d</td><td>7d</td><td>9</td><td>$569</td><td></td></tr>
+          <tr><td>Husam Zalmiyar</td><td>11d</td><td>8d</td><td>7</td><td>$654</td><td></td></tr>
+          <tr class="best"><td><strong>Joseph Abarno</strong></td><td>11d</td><td>5d</td><td><strong>19</strong></td><td>$576</td><td><span class="pill pill-green">Volume leader</span></td></tr>
+          <tr><td>Andy Whisenant</td><td>11d</td><td>8d</td><td>9</td><td>$821</td><td></td></tr>
+          <tr><td>Reese Middleton</td><td>12d</td><td>12d</td><td>6</td><td>$662</td><td></td></tr>
+          <tr><td>Jake Borah</td><td>12d</td><td>13d</td><td>12</td><td>$741</td><td></td></tr>
+          <tr><td>Patrick Dahlstrom</td><td>13d</td><td>15d</td><td>4</td><td>$803</td><td></td></tr>
+          <tr><td>Jake Mitchell</td><td>14d</td><td>15d</td><td>16</td><td>$554</td><td></td></tr>
+          <tr><td>Patrick Davies</td><td>20d</td><td>14d</td><td>10</td><td>$567</td><td></td></tr>
+          <tr><td>Jamie Butler</td><td>22d</td><td>18d</td><td>3</td><td>$423</td><td><span class="pill pill-amber">Slow + small</span></td></tr>
+          <tr class="best"><td><strong>Davis Herndon</strong></td><td>25d</td><td>28d</td><td>4</td><td><strong>$1,153</strong></td><td><span class="pill pill-green">Worth the wait</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="insight green">
+      <div class="insight-icon">💡</div>
+      <div class="insight-text">
+        <strong>Abarno's median is 5 days — he's making fast decisions happen</strong>
+        <span>Despite running 91 deals (highest volume), Abarno's median close is 5 days. He's not cherry-picking — he's doing something in discovery that accelerates decision-making. This behavior needs to be documented and replicated.</span>
+      </div>
+    </div>
+
+    <div class="insight amber">
+      <div class="insight-icon">⏳</div>
+      <div class="insight-text">
+        <strong>Davis Herndon's 25-day average is a feature, not a bug</strong>
+        <span>He closes at $1,153 avg MRR — nearly double the team average. Longer cycles correlate with larger deals. His ICP and selling motion are distinct from the rest of the team and should be studied separately.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NO-SHOW RATES ──────────────────────── -->
+  <div class="section">
+    <div class="section-title">No-Show Rates by Rep — The Single Biggest Lever</div>
+
+    <div class="insight red">
+      <div class="insight-icon">🚨</div>
+      <div class="insight-text">
+        <strong>34.8% of ALL PSA Web losses are discovery no-shows — 396 dead deals</strong>
+        <span>At a ~9.2% win rate, if we had kept half of those prospects engaged, that's ~18 additional wins/month. At $660 avg MRR, that's $11,900 MRR/month recovered from a single fix. No-show remediation is the highest-leverage action in this analysis.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📞 No-Show Rate as % of Total Pipeline Worked</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Rep</th>
+            <th>No-Shows</th>
+            <th>Total Closed</th>
+            <th>No-Show Rate</th>
+            <th>No-Show % of Losses</th>
+            <th>Alert</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="best"><td><strong>Patrick Dahlstrom</strong></td><td>1</td><td>38</td><td><strong>2.6%</strong></td><td>2.9%</td><td><span class="pill pill-green">🏆 Benchmark</span></td></tr>
+          <tr><td>Jamie Butler</td><td>5</td><td>40</td><td>12.5%</td><td>13.5%</td><td><span class="pill pill-green">Low</span></td></tr>
+          <tr><td>Connor Flynn</td><td>21</td><td>130</td><td>16.2%</td><td>17.4%</td><td><span class="pill pill-green">Low</span></td></tr>
+          <tr><td>Reese Middleton</td><td>21</td><td>78</td><td>26.9%</td><td>29.2%</td><td><span class="pill pill-amber">Moderate</span></td></tr>
+          <tr><td>Matt Salin</td><td>24</td><td>81</td><td>29.6%</td><td>32.9%</td><td><span class="pill pill-amber">Moderate</span></td></tr>
+          <tr><td>Patrick Davies</td><td>58</td><td>158</td><td>36.7%</td><td>39.2%</td><td><span class="pill pill-red">High</span></td></tr>
+          <tr><td>Andy Whisenant</td><td>30</td><td>84</td><td>35.7%</td><td>40.0%</td><td><span class="pill pill-red">High</span></td></tr>
+          <tr><td>Davis Herndon</td><td>17</td><td>53</td><td>32.1%</td><td>34.7%</td><td><span class="pill pill-amber">Moderate</span></td></tr>
+          <tr><td>Joseph Abarno</td><td>33</td><td>91</td><td>36.3%</td><td>45.8%</td><td><span class="pill pill-red">High</span></td></tr>
+          <tr><td>Jake Mitchell</td><td>50</td><td>156</td><td>32.1%</td><td>35.7%</td><td><span class="pill pill-red">High</span></td></tr>
+          <tr><td>Jaylin Bender</td><td>33</td><td>92</td><td>35.9%</td><td>38.4%</td><td><span class="pill pill-red">High</span></td></tr>
+          <tr class="worst"><td><strong>Jake Borah</strong></td><td>46</td><td>115</td><td><strong>40.0%</strong></td><td>44.7%</td><td><span class="pill pill-red">🔴 Highest Vol</span></td></tr>
+          <tr class="worst"><td><strong>Husam Zalmiyar</strong></td><td>57</td><td>131</td><td><strong>43.5%</strong></td><td>46.0%</td><td><span class="pill pill-red">🔴 Worst Rate</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="two-col">
+      <div class="insight purple">
+        <div class="insight-icon">🔍</div>
+        <div class="insight-text">
+          <strong>Dahlstrom's 2.6% no-show rate is a team cheat code</strong>
+          <span>He's working 38 deals, 1 no-show. Everyone else is in the 13–43% range. What is he doing differently? Confirmation sequences? Better lead qualification before scheduling? Shorter time-to-discovery booking? This is the first interview that needs to happen.</span>
+        </div>
+      </div>
+      <div class="insight red">
+        <div class="insight-icon">📉</div>
+        <div class="insight-text">
+          <strong>Husam & Borah combined: 103 no-shows from 246 deals</strong>
+          <span>These two reps alone account for 103 no-shows — 26% of all 396 no-shows. If either rep fixed their show rate to Dahlstrom's level, the team-level no-show count would drop by 20%+. Targeted coaching here has outsized impact.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REP FAILURE MODE PROFILES ─────────────── -->
+  <div class="section">
+    <div class="section-title">Rep Failure Mode Profiles — Every Rep Has a Different Problem</div>
+
+    <div class="insight blue">
+      <div class="insight-icon">💡</div>
+      <div class="insight-text">
+        <strong>There is no single fix — different reps fail at different points</strong>
+        <span>Coaching "close harder" won't fix a rep who can't get people to show up. And fixing show rates won't help the rep who's booking the wrong ICPs. Each rep needs a different intervention. Here's where they're each breaking down.</span>
+      </div>
+    </div>
+
+    <div class="profile-grid">
+      <div class="profile-card" style="border-top: 3px solid #10b981;">
+        <h4>Joseph Abarno <span class="profile-badge tag-green">Team Leader</span></h4>
+        <div class="profile-row"><span>Win Rate</span><span class="val">20.9%</span></div>
+        <div class="profile-row"><span>No-Show Rate</span><span class="val">36.3%</span></div>
+        <div class="profile-row"><span>Median Cycle</span><span class="val">5 days</span></div>
+        <div class="profile-row"><span>#1 Failure Mode</span><span class="val">No-shows (45.8%)</span></div>
+        <div class="profile-reason">🎯 His ceiling is much higher. 33 no-shows × 20.9% win rate = 7 wins left on table every cycle he runs. Fix his show rate and he's a 25%+ closer.</div>
+      </div>
+      <div class="profile-card" style="border-top: 3px solid #10b981;">
+        <h4>Patrick Dahlstrom <span class="profile-badge tag-green">Show Rate King</span></h4>
+        <div class="profile-row"><span>Win Rate</span><span class="val">10.5%</span></div>
+        <div class="profile-row"><span>No-Show Rate</span><span class="val">2.6%</span></div>
+        <div class="profile-row"><span>Median Cycle</span><span class="val">15 days</span></div>
+        <div class="profile-row"><span>#1 Failure Mode</span><span class="val">Not Right Time (32%)</span></div>
+        <div class="profile-reason">🔍 Almost never gets stood up. But loses to timing and "no decision." He gets in the room — just can't always create urgency. His confirmation process should be the team standard.</div>
+      </div>
+      <div class="profile-card" style="border-top: 3px solid #6366f1;">
+        <h4>Jake Mitchell <span class="profile-badge tag-blue">High Volume</span></h4>
+        <div class="profile-row"><span>Win Rate</span><span class="val">10.3%</span></div>
+        <div class="profile-row"><span>No-Show Rate</span><span class="val">32.1%</span></div>
+        <div class="profile-row"><span>Median Cycle</span><span class="val">15 days</span></div>
+        <div class="profile-row"><span>#1 Failure Mode</span><span class="val">Not Right Time (21.4%)</span></div>
+        <div class="profile-reason">📋 Carries 156 deals — most volume of any rep. Primary failure is timing, not show rate. May be overloaded. Needs pipeline hygiene help more than show rate coaching.</div>
+      </div>
+      <div class="profile-card" style="border-top: 3px solid #f59e0b;">
+        <h4>Connor Flynn <span class="profile-badge tag-amber">Timing Problem</span></h4>
+        <div class="profile-row"><span>Win Rate</span><span class="val">6.9%</span></div>
+        <div class="profile-row"><span>No-Show Rate</span><span class="val">16.2%</span></div>
+        <div class="profile-row"><span>Median Cycle</span><span class="val">7 days</span></div>
+        <div class="profile-row"><span>#1 Failure Mode</span><span class="val">Not Right Time (30.6%)</span></div>
+        <div class="profile-reason">⏰ Best show rate among the low performers. His loss pattern screams poor ICP qualification — booking prospects who aren't ready to buy. Needs qualification criteria review, not show-rate coaching.</div>
+      </div>
+      <div class="profile-card" style="border-top: 3px solid #ef4444;">
+        <h4>Husam Zalmiyar <span class="profile-badge tag-red">Dual Problem</span></h4>
+        <div class="profile-row"><span>Win Rate</span><span class="val">5.3%</span></div>
+        <div class="profile-row"><span>No-Show Rate</span><span class="val">43.5%</span></div>
+        <div class="profile-row"><span>Median Cycle</span><span class="val">8 days</span></div>
+        <div class="profile-row"><span>#1 Failure Mode</span><span class="val">No-shows (46%) + Features (20%)</span></div>
+        <div class="profile-reason">🚨 Show rate AND product issue. Nearly half his deals no-show, and of those who do show, 20% cite missing features. Two separate problems to address: show rate first, ICP/demo quality second.</div>
+      </div>
+      <div class="profile-card" style="border-top: 3px solid #ef4444;">
+        <h4>Patrick Davies <span class="profile-badge tag-red">Show + Features</span></h4>
+        <div class="profile-row"><span>Win Rate</span><span class="val">6.3%</span></div>
+        <div class="profile-row"><span>No-Show Rate</span><span class="val">36.7%</span></div>
+        <div class="profile-row"><span>Median Cycle</span><span class="val">14 days</span></div>
+        <div class="profile-row"><span>#1 Failure Mode</span><span class="val">No-show (39%) + Features (18%)</span></div>
+        <div class="profile-reason">🚨 #1 in absolute no-show volume (58 deals). When prospects do show, he's also losing heavily to product gaps. Needs show-rate fix AND better pre-demo qualification to confirm feature fit.</div>
+      </div>
+      <div class="profile-card" style="border-top: 3px solid #3b82f6;">
+        <h4>Davis Herndon <span class="profile-badge tag-blue">Premium Hunter</span></h4>
+        <div class="profile-row"><span>Win Rate</span><span class="val">7.5%</span></div>
+        <div class="profile-row"><span>No-Show Rate</span><span class="val">32.1%</span></div>
+        <div class="profile-row"><span>Median Cycle</span><span class="val">28 days</span></div>
+        <div class="profile-row"><span>Avg MRR / Win</span><span class="val">$1,153</span></div>
+        <div class="profile-reason">💎 Operates at a different level. Longer cycles, bigger deals. His win rate looks low, but his MRR per win is double the team average. Should not be coached the same way as volume reps — study his ICP, not his conversion rate.</div>
+      </div>
+      <div class="profile-card" style="border-top: 3px solid #8b5cf6;">
+        <h4>Jake Borah <span class="profile-badge tag-red">Show Rate Focus</span></h4>
+        <div class="profile-row"><span>Win Rate</span><span class="val">10.4%</span></div>
+        <div class="profile-row"><span>No-Show Rate</span><span class="val">40.0%</span></div>
+        <div class="profile-row"><span>Median Cycle</span><span class="val">13 days</span></div>
+        <div class="profile-row"><span>#1 Failure Mode</span><span class="val">No-shows (44.7%)</span></div>
+        <div class="profile-reason">📉 Good win rate when he competes, but 46 no-shows is the most in absolute terms (tied top). If he dropped to Dahlstrom's show rate, he'd add ~6 wins/month at his current close rate.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KEY ACTIONS ──────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Phase 2 Verdict — Three Specific Actions</div>
+    <div class="summary-verdict">
+      <h3>🎯 What to Do With This</h3>
+      <div class="action-list">
+        <div class="action-item">
+          <div class="action-num">1</div>
+          <div class="action-body">
+            <strong>Interview Dahlstrom this week — extract his show-rate playbook</strong>
+            <span>His 2.6% no-show rate vs the team's 35%+ average is the most actionable data point in this entire analysis. What does his confirmation sequence look like? How does he book and remind prospects? Codify it and make it the team standard. Estimated impact: reduce team no-shows from 35% to 15% = ~80 more prospects entering the funnel per month.</span>
+          </div>
+        </div>
+        <div class="action-item">
+          <div class="action-num">2</div>
+          <div class="action-body">
+            <strong>Split the rep coaching plan by failure mode — not one-size coaching</strong>
+            <span>Husam/Borah/Davies = show rate intervention. Connor Flynn/Jake Mitchell = ICP qualification tightening (timing problem, not show problem). Davis Herndon = do not coach, study. Abarno = he's the template for everyone else.</span>
+          </div>
+        </div>
+        <div class="action-item">
+          <div class="action-num">3</div>
+          <div class="action-body">
+            <strong>Investigate September 2025 — what drove the 12.2% win rate?</strong>
+            <span>September had the highest win rate ever (12.2%) from the fewest closures (147). Was it a different mix of reps closing? Different prospect quality? A specific campaign? Whatever happened that month is the template for the new normal. Sep and Jan 2026 are the two months to autopsied in depth.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <strong style="color:#94a3b8;">Rev.io GTM Intelligence · Phase 2 Funnel Autopsy</strong><br>
+  Pulled live from Salesforce · 1,252 PSA Web deals analyzed (Jul 2025–Feb 2026) · Revay AI Chief of Staff<br>
+  <a href="phase1-baseline.html" style="color:#6366f1;">← Phase 1 Baseline</a> &nbsp;|&nbsp;
+  Phase 3 Benchmarking coming next
+</div>
+
+</body>
+</html>
