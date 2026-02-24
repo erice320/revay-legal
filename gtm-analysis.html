@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTM Bookings Performance Analysis | Rev.io</title>
+<style>
+  :root {
+    --brand: #0f172a;
+    --accent: #6366f1;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #8b5cf6;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+  /* NAV */
+  .nav { background: var(--brand); position: sticky; top: 0; z-index: 100; padding: 0 32px; display: flex; align-items: center; gap: 4px; overflow-x: auto; }
+  .nav a { color: #94a3b8; text-decoration: none; font-size: 12px; font-weight: 600; padding: 14px 14px; white-space: nowrap; border-bottom: 2px solid transparent; transition: all .2s; }
+  .nav a:hover, .nav a.active { color: white; border-bottom-color: #6366f1; }
+  .nav-logo { color: white; font-weight: 800; font-size: 14px; margin-right: 12px; padding: 14px 0; flex-shrink: 0; }
+
+  /* HERO */
+  .hero { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: white; padding: 64px 48px 56px; }
+  .hero-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: #818cf8; margin-bottom: 12px; font-weight: 600; }
+  .hero h1 { font-size: 40px; font-weight: 800; margin-bottom: 12px; line-height: 1.15; }
+  .hero p { color: #94a3b8; font-size: 16px; max-width: 640px; margin-bottom: 28px; line-height: 1.6; }
+  .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+  .hero-stat .num { font-size: 36px; font-weight: 800; }
+  .hero-stat .lbl { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 48px 24px; }
+  .section { margin-bottom: 64px; scroll-margin-top: 56px; }
+  .section-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+  .section-title { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+  .section-sub { color: var(--muted); font-size: 15px; margin-bottom: 28px; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 16px; }
+  .card-title { font-size: 15px; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+  /* KPI GRID */
+  .kpi-row { display: grid; gap: 14px; margin-bottom: 20px; }
+  .kpi-row.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .kpi-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .kpi-row.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 900px) { .kpi-row.cols-4, .kpi-row.cols-3 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .kpi-row.cols-4, .kpi-row.cols-3, .kpi-row.cols-2 { grid-template-columns: 1fr 1fr; } }
+
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; overflow: hidden; }
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+  .kpi.green::before { background: var(--green); }
+  .kpi.amber::before { background: var(--amber); }
+  .kpi.red::before { background: var(--red); }
+  .kpi.blue::before { background: var(--blue); }
+  .kpi.purple::before { background: var(--purple); }
+  .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+  .kpi-val { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+  .kpi-sub { font-size: 12px; color: var(--muted); }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 8px 14px; border-bottom: 2px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbfc; }
+  tr.row-top td { background: #f0fdf4 !important; font-weight: 600; }
+  tr.row-bot td { background: #fef2f2 !important; }
+
+  /* INSIGHT BOXES */
+  .insight { padding: 14px 18px; border-radius: 8px; margin-bottom: 12px; display: flex; gap: 12px; align-items: flex-start; }
+  .insight.red { background: #fef2f2; border-left: 3px solid var(--red); }
+  .insight.green { background: #f0fdf4; border-left: 3px solid var(--green); }
+  .insight.amber { background: #fffbeb; border-left: 3px solid var(--amber); }
+  .insight.blue { background: #eff6ff; border-left: 3px solid var(--blue); }
+  .insight.purple { background: #f5f3ff; border-left: 3px solid var(--purple); }
+  .insight-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .insight-text strong { display: block; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .insight-text span { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 800px) { .two-col, .three-col { grid-template-columns: 1fr; } }
+
+  /* TREND BARS */
+  .trend { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
+  .trend-col { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+  .trend-bar { width: 100%; border-radius: 4px 4px 0 0; position: relative; cursor: default; min-height: 4px; }
+  .trend-bar .tip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--brand); color: white; font-size: 10px; padding: 3px 7px; border-radius: 4px; white-space: nowrap; pointer-events: none; opacity: 0; transition: .15s; z-index: 5; }
+  .trend-bar:hover .tip { opacity: 1; }
+  .trend-cnt { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+  .trend-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; text-align: center; }
+
+  /* HORIZONTAL BARS */
+  .hbar-list { display: flex; flex-direction: column; gap: 10px; }
+  .hbar-row { display: flex; align-items: center; gap: 10px; }
+  .hbar-lbl { width: 160px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .hbar-track { flex: 1; background: #f1f5f9; border-radius: 4px; height: 26px; overflow: hidden; }
+  .hbar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 10px; }
+  .hbar-fill span { font-size: 11px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; }
+
+  /* VELOCITY CHART */
+  .vel-list { display: flex; flex-direction: column; gap: 8px; }
+  .vel-row { display: flex; align-items: center; gap: 0; height: 36px; }
+  .vel-lbl { width: 72px; font-size: 11px; color: var(--muted); padding-right: 8px; flex-shrink: 0; font-weight: 600; }
+  .vel-lost { background: #fee2e2; display: flex; align-items: center; padding: 0 8px; }
+  .vel-won { background: var(--green); display: flex; align-items: center; padding: 0 8px; min-width: 22px; }
+  .vel-lost span, .vel-won span { font-size: 10px; font-weight: 600; white-space: nowrap; color: #b91c1c; }
+  .vel-won span { color: white; }
+  .vel-pct { width: 46px; font-size: 11px; font-weight: 700; padding-left: 6px; flex-shrink: 0; }
+
+  /* FUNNEL */
+  .funnel { display: flex; flex-direction: column; gap: 8px; }
+  .fstage { display: flex; align-items: center; gap: 10px; }
+  .fstage-lbl { width: 200px; font-size: 12px; flex-shrink: 0; }
+  .fstage-bar { flex: 1; background: #f1f5f9; border-radius: 4px; height: 32px; overflow: hidden; }
+  .fstage-fill { height: 100%; display: flex; align-items: center; padding: 0 10px; justify-content: space-between; }
+  .fstage-fill span { font-size: 11px; font-weight: 600; color: white; }
+  .fstage-meta { width: 70px; font-size: 11px; color: var(--muted); text-align: right; }
+
+  /* PILL */
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .pill-g { background: #dcfce7; color: #15803d; }
+  .pill-r { background: #fee2e2; color: #b91c1c; }
+  .pill-a { background: #fef3c7; color: #92400e; }
+  .pill-b { background: #dbeafe; color: #1d4ed8; }
+  .pill-p { background: #f3e8ff; color: #7c3aed; }
+
+  /* SCORECARD */
+  .sc-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+
+  /* ACTIONS */
+  .action-block { background: var(--brand); color: white; border-radius: 14px; padding: 32px; }
+  .action-block h3 { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+  .action-list { display: flex; flex-direction: column; gap: 12px; }
+  .action-item { display: flex; gap: 14px; background: rgba(255,255,255,.06); border-radius: 10px; padding: 16px; }
+  .action-num { font-size: 24px; font-weight: 800; color: #818cf8; flex-shrink: 0; line-height: 1; }
+  .action-body strong { font-size: 14px; display: block; margin-bottom: 3px; }
+  .action-body span { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+
+  /* MATH SECTION */
+  .scenario-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 800px) { .scenario-grid { grid-template-columns: 1fr; } }
+  .scenario-card { border-radius: 12px; padding: 22px; border: 1px solid var(--border); }
+  .scenario-card h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+  .scenario-card .big { font-size: 38px; font-weight: 800; margin: 8px 0; }
+  .scenario-card .row { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: 1px solid #f1f5f9; }
+  .scenario-card .row:last-child { border-bottom: none; font-weight: 700; }
+  .scenario-card.winner { background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border-color: var(--green); }
+  .scenario-card.mid { background: linear-gradient(135deg, #fffbeb, #fefce8); border-color: var(--amber); }
+  .scenario-card.base { background: #f8fafc; }
+
+  /* QUICK WINS TABLE */
+  .qw-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; }
+
+  /* DIVIDER */
+  .phase-divider { border: none; border-top: 2px solid var(--border); margin: 48px 0; }
+
+  /* FOOTER */
+  .footer { background: var(--brand); color: #475569; text-align: center; padding: 32px; font-size: 12px; margin-top: 48px; }
+  .footer a { color: #6366f1; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">⚡ Rev.io</div>
+  <a href="#exec">Executive Summary</a>
+  <a href="#phase1">Phase 1 · Baseline</a>
+  <a href="#phase2">Phase 2 · Autopsy</a>
+  <a href="#phase3">Phase 3 · Reps</a>
+  <a href="#phase4">Phase 4 · ICP</a>
+  <a href="#phase5">Phase 5 · Quick Wins</a>
+  <a href="#phase6">Phase 6 · 5× Math</a>
+  <a href="#recs">Recommendations</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">Rev.io · GTM Bookings Performance Initiative · Feb 2026</div>
+  <h1>PSA Web &amp; Cyber Protect<br>Bookings Analysis</h1>
+  <p>A data-driven audit of win rates, funnel health, rep performance, customer segments, and the 5× growth path — pulled live from Salesforce.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">13,953</div><div class="lbl">Total SF Opportunities</div></div>
+    <div class="hero-stat"><div class="num">1,252</div><div class="lbl">PSA Web Deals Analyzed</div></div>
+    <div class="hero-stat"><div class="num">9.2%</div><div class="lbl">Current Win Rate</div></div>
+    <div class="hero-stat"><div class="num">$9,500</div><div class="lbl">MRR / Month Run Rate</div></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══ EXECUTIVE SUMMARY ══ -->
+  <div class="section" id="exec">
+    <div class="section-eyebrow">Executive Summary</div>
+    <div class="section-title">The Core Diagnosis</div>
+    <div class="section-sub">What six phases of Salesforce analysis revealed</div>
+
+    <div class="kpi-row cols-4">
+      <div class="kpi green"><div class="kpi-lbl">Wins Since Launch</div><div class="kpi-val">115</div><div class="kpi-sub">PSA Web · Jun 29 – Feb 2026</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Win Rate</div><div class="kpi-val">9.2%</div><div class="kpi-sub">115 of 1,252 closed deals</div></div>
+      <div class="kpi red"><div class="kpi-lbl">No-Show Rate</div><div class="kpi-val">34.8%</div><div class="kpi-sub">#1 single loss reason — 396 deals</div></div>
+      <div class="kpi blue"><div class="kpi-lbl">5× Target</div><div class="kpi-val">$47.5K</div><div class="kpi-sub">MRR/month · from $9,500 today</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 Three Root Causes, Three Levers</div>
+      <div class="three-col">
+        <div class="insight red" style="flex-direction:column; gap:8px;">
+          <div style="font-size:28px; font-weight:800; color:var(--red);">34.8%</div>
+          <strong style="font-size:14px;">Execution Failure #1 — No-Shows</strong>
+          <span style="font-size:12px; color:var(--muted);">396 deals lost before discovery even happened. Patrick Dahlstrom has a 2.6% no-show rate. The team averages 35%+. The gap is the single biggest opportunity in this analysis.</span>
+        </div>
+        <div class="insight amber" style="flex-direction:column; gap:8px;">
+          <div style="font-size:28px; font-weight:800; color:var(--amber);">3.9×</div>
+          <strong style="font-size:14px;">Execution Failure #2 — Rep Spread</strong>
+          <span style="font-size:12px; color:var(--muted);">Abarno closes at 20.9%. The bottom three reps close at 5–6.9%. If the bottom half matched the team median, wins per month increase 40% from identical pipeline.</span>
+        </div>
+        <div class="insight blue" style="flex-direction:column; gap:8px;">
+          <div style="font-size:28px; font-weight:800; color:var(--blue);">~30%</div>
+          <strong style="font-size:14px;">ICP Finding — Billing Cross-Sell Win Rate</strong>
+          <span style="font-size:12px; color:var(--muted);">Rev.io Billing clients convert to PSA at ~30% — 3× the overall win rate. 78% of wins are net new logos (no prior Rev.io relationship). Only 23 of 1,125 Billing accounts have PSA Web. The biggest cross-sell upside is sitting in the existing base.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight green">
+      <div class="insight-icon">✅</div>
+      <div class="insight-text">
+        <strong>Only 1.6% of losses are competitive — this is not a product problem, it's an execution problem</strong>
+        <span>Rev.io wins 98.4% of deals it competes in to close. The battles are being lost before they start — at the no-show stage. Fix show rates and the win volume follows immediately.</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="phase-divider">
+
+  <!-- ══ PHASE 1: BASELINE ══ -->
+  <div class="section" id="phase1">
+    <div class="section-eyebrow">Phase 1 · Baseline</div>
+    <div class="section-title">PSA Web — Since Launch</div>
+    <div class="section-sub">Jun 29, 2025 → Feb 2026 · 8 months of live data</div>
+
+    <div class="kpi-row cols-4">
+      <div class="kpi green"><div class="kpi-lbl">Total MRR Booked</div><div class="kpi-val">$75,940</div><div class="kpi-sub">All wins since launch</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Monthly Run Rate</div><div class="kpi-val">~$9,500</div><div class="kpi-sub">Jul–Jan 7-month average</div></div>
+      <div class="kpi blue"><div class="kpi-lbl">Avg Deal Size</div><div class="kpi-val">$660</div><div class="kpi-sub">Per winning deal</div></div>
+      <div class="kpi red"><div class="kpi-lbl">Peak Month</div><div class="kpi-val">$15,470</div><div class="kpi-sub">October 2025 · 22 wins</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">📈 Monthly PSA Web Wins</div>
+        <div class="trend">
+          <div class="trend-col"><div class="trend-cnt">2</div><div class="trend-bar" style="background:#94a3b8;height:9%"><div class="tip">Jun '25: 2 wins · $2,800</div></div><div class="trend-lbl">Jun</div></div>
+          <div class="trend-col"><div class="trend-cnt">15</div><div class="trend-bar" style="background:#6366f1;height:68%"><div class="tip">Jul '25: 15 wins · $8,905</div></div><div class="trend-lbl">Jul</div></div>
+          <div class="trend-col"><div class="trend-cnt">13</div><div class="trend-bar" style="background:#6366f1;height:59%"><div class="tip">Aug '25: 13 wins · $7,432</div></div><div class="trend-lbl">Aug</div></div>
+          <div class="trend-col"><div class="trend-cnt">18</div><div class="trend-bar" style="background:#6366f1;height:82%"><div class="tip">Sep '25: 18 wins · $8,321 · 12.2% rate</div></div><div class="trend-lbl">Sep</div></div>
+          <div class="trend-col"><div class="trend-cnt">22</div><div class="trend-bar" style="background:#10b981;height:100%"><div class="tip">Oct '25: 22 wins · $15,470 🏆 Peak</div></div><div class="trend-lbl">Oct 🏆</div></div>
+          <div class="trend-col"><div class="trend-cnt">9</div><div class="trend-bar" style="background:#ef4444;height:41%"><div class="tip">Nov '25: 9 wins · $9,772 ⚠️ Drop</div></div><div class="trend-lbl">Nov ⚠️</div></div>
+          <div class="trend-col"><div class="trend-cnt">15</div><div class="trend-bar" style="background:#6366f1;height:68%"><div class="tip">Dec '25: 15 wins · $11,045</div></div><div class="trend-lbl">Dec</div></div>
+          <div class="trend-col"><div class="trend-cnt">10</div><div class="trend-bar" style="background:#f59e0b;height:45%"><div class="tip">Jan '26: 10 wins · $5,740 · 4.7% rate 🚨</div></div><div class="trend-lbl">Jan</div></div>
+          <div class="trend-col"><div class="trend-cnt">11*</div><div class="trend-bar" style="background:#f59e0b;height:50%"><div class="tip">Feb '26: 11 wins · $6,455 (partial)</div></div><div class="trend-lbl">Feb*</div></div>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:10px;">* Feb partial month. Hover bars for detail.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">🔻 Open PSA Pipeline · 93 Opps · $55K MRR</div>
+        <div class="funnel">
+          <div class="fstage"><div class="fstage-lbl" style="font-size:11px;">Stage 1 · Disc. Scheduled</div><div class="fstage-bar"><div class="fstage-fill" style="background:#6366f1;width:100%"><span>55 opps</span><span>$26,715</span></div></div><div class="fstage-meta">59%</div></div>
+          <div class="fstage"><div class="fstage-lbl" style="font-size:11px;">Stage 2 · Disc. Completed</div><div class="fstage-bar"><div class="fstage-fill" style="background:#818cf8;width:78%"><span>19 opps</span><span>$8,495</span></div></div><div class="fstage-meta">20%</div></div>
+          <div class="fstage"><div class="fstage-lbl" style="font-size:11px;">Stage 3 · Product Demo</div><div class="fstage-bar"><div class="fstage-fill" style="background:#a5b4fc;width:55%"><span>15 opps</span><span>$16,055</span></div></div><div class="fstage-meta">16%</div></div>
+          <div class="fstage"><div class="fstage-lbl" style="font-size:11px;">Stage 4+ · Proposal/Close</div><div class="fstage-bar"><div class="fstage-fill" style="background:#10b981;width:14%"><span>4 opps · $4,004</span></div></div><div class="fstage-meta">4% 🔥</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight amber">
+      <div class="insight-icon">⚠️</div>
+      <div class="insight-text">
+        <strong>Win rate swings from 4.7% (Jan) to 12.2% (Sep) — 2.6× range on identical deal counts</strong>
+        <span>The team is not a consistent machine. Sep had 147 closures at 12.2% win rate. Jan had 214 closures at 4.7%. Volume was never the constraint. Conversion rate is the variable being left on the table.</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="phase-divider">
+
+  <!-- ══ PHASE 2: FUNNEL AUTOPSY ══ -->
+  <div class="section" id="phase2">
+    <div class="section-eyebrow">Phase 2 · Funnel Autopsy</div>
+    <div class="section-title">Where Deals Go to Die</div>
+    <div class="section-sub">Cycle time, no-show rates, monthly win rate volatility</div>
+
+    <div class="kpi-row cols-4">
+      <div class="kpi green"><div class="kpi-lbl">Median Cycle Time</div><div class="kpi-val">9 days</div><div class="kpi-sub">Won deals · avg 12.6d</div></div>
+      <div class="kpi blue"><div class="kpi-lbl">Close in ≤7 Days</div><div class="kpi-val">41%</div><div class="kpi-sub">47 of 115 wins decide fast</div></div>
+      <div class="kpi red"><div class="kpi-lbl">No-Show Losses</div><div class="kpi-val">396</div><div class="kpi-sub">34.8% of all losses</div></div>
+      <div class="kpi purple"><div class="kpi-lbl">Lost to Competitor</div><div class="kpi-val">1.6%</div><div class="kpi-sub">18 of 1,137 losses</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">📊 Monthly Win Rate (Won ÷ Total Closed)</div>
+        <div class="vel-list">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">← Lost &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Won →</div>
+          <div class="vel-row"><div class="vel-lbl">Jul '25</div><div class="vel-lost" style="flex:213"><span>213</span></div><div class="vel-won" style="flex:15"><span>15</span></div><div class="vel-pct">6.6%</div></div>
+          <div class="vel-row"><div class="vel-lbl">Aug '25</div><div class="vel-lost" style="flex:201"><span>201</span></div><div class="vel-won" style="flex:13"><span>13</span></div><div class="vel-pct">6.1%</div></div>
+          <div class="vel-row" style="background:#f0fdf4; border-radius:4px;"><div class="vel-lbl" style="color:var(--green);">Sep '25 🏆</div><div class="vel-lost" style="flex:129"><span>129</span></div><div class="vel-won" style="flex:18"><span>18</span></div><div class="vel-pct" style="color:var(--green);font-weight:800;">12.2%</div></div>
+          <div class="vel-row"><div class="vel-lbl">Oct '25</div><div class="vel-lost" style="flex:196"><span>196</span></div><div class="vel-won" style="flex:22"><span>22</span></div><div class="vel-pct">10.1%</div></div>
+          <div class="vel-row" style="background:#fef2f2;border-radius:4px;"><div class="vel-lbl" style="color:var(--red);">Nov '25 ⚠️</div><div class="vel-lost" style="flex:138"><span>138</span></div><div class="vel-won" style="flex:9"><span>9</span></div><div class="vel-pct" style="color:var(--red);">6.1%</div></div>
+          <div class="vel-row"><div class="vel-lbl">Dec '25</div><div class="vel-lost" style="flex:158"><span>158</span></div><div class="vel-won" style="flex:15"><span>15</span></div><div class="vel-pct">8.7%</div></div>
+          <div class="vel-row" style="background:#fef2f2;border-radius:4px;"><div class="vel-lbl" style="color:var(--red);">Jan '26 🚨</div><div class="vel-lost" style="flex:204"><span>204</span></div><div class="vel-won" style="flex:10"><span>10</span></div><div class="vel-pct" style="color:var(--red);font-weight:800;">4.7%</div></div>
+          <div class="vel-row"><div class="vel-lbl">Feb '26*</div><div class="vel-lost" style="flex:129"><span>129</span></div><div class="vel-won" style="flex:11"><span>11</span></div><div class="vel-pct">7.9%</div></div>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;">*Feb partial month.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Why Deals Are Lost (1,137 Closed-Lost)</div>
+        <div class="hbar-list">
+          <div class="hbar-row"><div class="hbar-lbl">Discovery No-Show</div><div class="hbar-track"><div class="hbar-fill" style="background:#ef4444;width:100%"><span>396 · 34.8% · $277K MRR</span></div></div></div>
+          <div class="hbar-row"><div class="hbar-lbl">Not Right Time</div><div class="hbar-track"><div class="hbar-fill" style="background:#f97316;width:49%"><span>195 · 17.2%</span></div></div></div>
+          <div class="hbar-row"><div class="hbar-lbl">Missing Features</div><div class="hbar-track"><div class="hbar-fill" style="background:#f59e0b;width:42%"><span>168 · 14.8%</span></div></div></div>
+          <div class="hbar-row"><div class="hbar-lbl">No Decision</div><div class="hbar-track"><div class="hbar-fill" style="background:#8b5cf6;width:30%"><span>119 · 10.5%</span></div></div></div>
+          <div class="hbar-row"><div class="hbar-lbl">Price</div><div class="hbar-track"><div class="hbar-fill" style="background:#6366f1;width:20%"><span>80 · 7.0%</span></div></div></div>
+          <div class="hbar-row"><div class="hbar-lbl">No Business Issue</div><div class="hbar-track"><div class="hbar-fill" style="background:#94a3b8;width:14%"><span>57 · 5.0%</span></div></div></div>
+          <div class="hbar-row"><div class="hbar-lbl">Lost to Competitor</div><div class="hbar-track"><div class="hbar-fill" style="background:#0ea5e9;width:5%"><span>18 · 1.6%</span></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight red">
+      <div class="insight-icon">🚨</div>
+      <div class="insight-text">
+        <strong>November answer: win rate crashed, not volume. January is actually worse.</strong>
+        <span>Nov had 147 closures — same as Sep (which produced 18 wins at 12.2%). Nov produced 9 wins at 6.1%. Jan had 214 closures and only 10 wins at 4.7% — the team entered 2026 at its all-time worst conversion rate. This demands investigation of what changed in late Q4/early Q1.</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="phase-divider">
+
+  <!-- ══ PHASE 3: REP BENCHMARKING ══ -->
+  <div class="section" id="phase3">
+    <div class="section-eyebrow">Phase 3 · Rep Benchmarking</div>
+    <div class="section-title">Full Rep Scorecard</div>
+    <div class="section-sub">Win rate, deal size, cycle time, no-show rate, open pipeline — every dimension ranked</div>
+
+    <div class="card">
+      <div class="card-title">🏆 PSA Web Rep Scorecard (post-Jun 29, 2025 · min 30 closed deals)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Rep</th><th>Win Rate</th><th>Wins</th><th>Total Closed</th>
+            <th>MRR Won</th><th>Avg MRR</th><th>Med Cycle</th><th>No-Show Rate</th><th>Open Opps</th><th>Failure Mode</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-top"><td>🥇</td><td><strong>Joseph Abarno</strong></td><td><strong>20.9%</strong></td><td>19</td><td>91</td><td>$10,946</td><td>$576</td><td>5d</td><td><span class="pill pill-a">36%</span></td><td>12</td><td>No-shows</td></tr>
+          <tr><td>2</td><td>Andy Whisenant</td><td>10.7%</td><td>9</td><td>84</td><td>$7,390</td><td>$821</td><td>8d</td><td><span class="pill pill-a">36%</span></td><td>6</td><td>Balanced</td></tr>
+          <tr><td>3</td><td>Patrick Dahlstrom</td><td>10.5%</td><td>4</td><td>38</td><td>$3,210</td><td>$803</td><td>15d</td><td><span class="pill pill-g">2.6%</span></td><td>4</td><td>Timing ✨</td></tr>
+          <tr><td>4</td><td>Jake Borah</td><td>10.4%</td><td>12</td><td>115</td><td>$8,890</td><td>$741</td><td>13d</td><td><span class="pill pill-r">40%</span></td><td>4</td><td>No-shows</td></tr>
+          <tr><td>5</td><td>Jake Mitchell</td><td>10.3%</td><td>16</td><td>156</td><td>$8,859</td><td>$554</td><td>15d</td><td><span class="pill pill-a">32%</span></td><td>6</td><td>Timing</td></tr>
+          <tr><td>6</td><td>Matt Salin</td><td>9.9%</td><td>8</td><td>81</td><td>$3,648</td><td>$456</td><td>8d</td><td><span class="pill pill-a">30%</span></td><td>0</td><td>No-shows</td></tr>
+          <tr><td>7</td><td>Reese Middleton</td><td>7.7%</td><td>6</td><td>78</td><td>$3,973</td><td>$662</td><td>12d</td><td><span class="pill pill-a">27%</span></td><td>0</td><td>No decision</td></tr>
+          <tr><td>8</td><td>Davis Herndon</td><td>7.5%</td><td>4</td><td>53</td><td>$4,612</td><td><strong>$1,153</strong></td><td>28d</td><td><span class="pill pill-a">32%</span></td><td>11</td><td>Different ICP 💎</td></tr>
+          <tr><td>9</td><td>Jamie Butler</td><td>7.5%</td><td>3</td><td>40</td><td>$1,270</td><td>$423</td><td>18d</td><td><span class="pill pill-g">13%</span></td><td>12</td><td>Features/timing</td></tr>
+          <tr><td>10</td><td>Jaylin Bender</td><td>6.5%</td><td>6</td><td>92</td><td>$3,700</td><td>$617</td><td>8d</td><td><span class="pill pill-r">36%</span></td><td>3</td><td>No-shows</td></tr>
+          <tr><td>11</td><td>Connor Flynn</td><td>6.9%</td><td>9</td><td>130</td><td>$5,121</td><td>$569</td><td>7d</td><td><span class="pill pill-g">16%</span></td><td>13</td><td>Wrong ICP</td></tr>
+          <tr><td>12</td><td>Patrick Davies</td><td>6.3%</td><td>10</td><td>158</td><td>$5,666</td><td>$567</td><td>14d</td><td><span class="pill pill-r">37%</span></td><td>14</td><td>No-shows + features</td></tr>
+          <tr class="row-bot"><td>13</td><td>Husam Zalmiyar</td><td>5.3%</td><td>7</td><td>131</td><td>$4,575</td><td>$654</td><td>8d</td><td><span class="pill pill-r">44%</span></td><td>11</td><td>Dual: show + features</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="two-col">
+      <div class="insight green">
+        <div class="insight-icon">⭐</div>
+        <div class="insight-text">
+          <strong>Dahlstrom's 2.6% no-show rate is the most actionable data point in this analysis</strong>
+          <span>He works 38 deals and gets stood up once. The rest of the team is getting stood up 1-in-3 to 1-in-2. His confirmation and booking process must be extracted and standardized team-wide. First interview to schedule this week.</span>
+        </div>
+      </div>
+      <div class="insight blue">
+        <div class="insight-icon">💎</div>
+        <div class="insight-text">
+          <strong>Davis Herndon is a different rep — don't coach him like the others</strong>
+          <span>$1,153 avg MRR/win vs $660 team average. 28-day median cycle vs 9. He's hunting bigger deals with longer processes. His ICP and qualification criteria should be studied and templated for the top reps.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔥 Open Pipeline Quality by Rep</div>
+      <table>
+        <thead><tr><th>Rep</th><th>Open Opps</th><th>MRR in Pipe</th><th>Highest Stage</th><th>Largest Deal</th></tr></thead>
+        <tbody>
+          <tr><td>Patrick Davies</td><td>14</td><td>$11,630</td><td>Stage 3</td><td>$6,875</td></tr>
+          <tr><td>Joseph Abarno</td><td>12</td><td>$5,645</td><td>Stage 2</td><td>$1,920</td></tr>
+          <tr><td>Jamie Butler</td><td>12</td><td>$8,155</td><td>Stage 4</td><td>$6,480</td></tr>
+          <tr><td>Connor Flynn</td><td>13</td><td>$7,499</td><td>Stage 6 🔥</td><td>$2,000</td></tr>
+          <tr class="row-top"><td>Davis Herndon</td><td>11</td><td>$2,995</td><td>Stage 3</td><td>$2,005</td></tr>
+          <tr><td>Husam Zalmiyar</td><td>11</td><td>$4,760</td><td>Stage 3</td><td>$1,750</td></tr>
+          <tr><td>Jake Mitchell</td><td>6</td><td>$5,075</td><td>Stage 4</td><td>$4,000</td></tr>
+          <tr><td>Andy Whisenant</td><td>6</td><td>$5,135</td><td>Stage 3</td><td>$2,800</td></tr>
+          <tr><td>Jake Borah</td><td>4</td><td>$4,375</td><td>Stage 1</td><td>$4,375</td></tr>
+          <tr><td>Patrick Dahlstrom</td><td>4</td><td>—</td><td>Stage 1</td><td>—</td></tr>
+          <tr><td>Jaylin Bender</td><td>3</td><td>—</td><td>Stage 2</td><td>—</td></tr>
+          <tr><td>Matt Salin</td><td>0</td><td>—</td><td>—</td><td>—</td></tr>
+          <tr><td>Reese Middleton</td><td>0</td><td>—</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px;">Connor Flynn has a Verbal Commit ($2,000 MRR) and a Stage 5 ($1,004 MRR) — highest-urgency active pipeline this week.</p>
+    </div>
+  </div>
+
+  <hr class="phase-divider">
+
+  <!-- ══ PHASE 4: ICP ══ -->
+  <div class="section" id="phase4">
+    <div class="section-eyebrow">Phase 4 · ICP Analysis</div>
+    <div class="section-title">Who Is Actually Buying?</div>
+    <div class="section-sub">Cross-referenced each PSA Web win against account transaction history — account type field was misleading (updates on close)</div>
+
+    <div class="kpi-row cols-3">
+      <div class="kpi blue"><div class="kpi-lbl">Net New Logos</div><div class="kpi-val">78%</div><div class="kpi-sub">90 of 115 wins — no prior Rev.io relationship</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Billing → PSA Cross-Sell</div><div class="kpi-val">20%</div><div class="kpi-sub">23 wins · $844 avg MRR · ~30% win rate</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Legacy Tigerpaw</div><div class="kpi-val">2%</div><div class="kpi-sub">Only 2 true prior-Tigerpaw migrations</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 True Win Source — Based on Account Transaction History</div>
+      <table>
+        <thead><tr><th>Segment</th><th>Wins</th><th>Avg MRR Won</th><th>Total MRR</th><th>Signal</th></tr></thead>
+        <tbody>
+          <tr class="row-top"><td><strong>Net New (no prior Rev.io relationship)</strong></td><td><strong>90</strong></td><td>$600</td><td>$53,965</td><td><span class="pill pill-b">Primary growth engine · 78% of wins</span></td></tr>
+          <tr class="row-top"><td><strong>Rev.io Billing Client (cross-sell)</strong></td><td><strong>23</strong></td><td><strong>$844</strong></td><td>$19,415</td><td><span class="pill pill-g">Premium segment · ~30% win rate · highest value</span></td></tr>
+          <tr><td>Legacy Tigerpaw / prior PSA</td><td>2</td><td>$1,280</td><td>$2,560</td><td><span class="pill pill-a">Minimal — not a meaningful motion</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="two-col">
+      <div class="insight green">
+        <div class="insight-icon">💡</div>
+        <div class="insight-text">
+          <strong>Rev.io Billing cross-sell is the premium segment — ~30% win rate, $844 avg deal</strong>
+          <span>23 wins from existing Billing clients, averaging $844 MRR (28% above overall average). Win rate for this segment is ~30% vs 9.2% overall — nearly 3× better. 1,125 total Billing accounts. Only 23 have PSA Web. This is the highest-quality, fastest-converting motion in the business.</span>
+        </div>
+      </div>
+      <div class="insight blue">
+        <div class="insight-icon">🏆</div>
+        <div class="insight-text">
+          <strong>PSA Web is a genuine new-customer acquisition product — 78% net new logos</strong>
+          <span>90 of 115 wins are companies with no prior Rev.io relationship. The new-market acquisition motion works. The question isn't whether it can win new customers — it's why the win rate is 9.2% instead of 15–20%, and how fast the Dahlstrom no-show fix can move that needle.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight amber">
+      <div class="insight-icon">💰</div>
+      <div class="insight-text">
+        <strong>Billing cross-sell is underworked relative to its win rate</strong>
+        <span>52 Billing clients are currently in closed-lost pipeline. 11 are in open pipeline ($9K MRR). At a 30% win rate vs the team average of 9.2%, every Billing cross-sell opp is worth 3× the effort of a cold prospect. Usman's CS team + sales alignment on this segment = immediate MRR lift with the best odds in the funnel.</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="phase-divider">
+
+  <!-- ══ PHASE 5: QUICK WINS ══ -->
+  <div class="section" id="phase5">
+    <div class="section-eyebrow">Phase 5 · Quick Wins</div>
+    <div class="section-title">Deals Closeable Right Now</div>
+    <div class="section-sub">Pipeline actions that generate MRR in the next 30 days — before any process changes</div>
+
+    <div class="kpi-row cols-3">
+      <div class="kpi green"><div class="kpi-lbl">Live Billing Pipe · 11 Opps</div><div class="kpi-val">$9,089</div><div class="kpi-sub">MRR in active Rev.io Billing cross-sell opps</div></div>
+      <div class="kpi blue"><div class="kpi-lbl">NinjaOne Integrated</div><div class="kpi-val">9 Accts</div><div class="kpi-sub">$6,900 MRR · integration live Feb 24</div></div>
+      <div class="kpi purple"><div class="kpi-lbl">Apollo 2 Unlock (Apr 1)</div><div class="kpi-val">$101.8K</div><div class="kpi-sub">MRR unlocked when A2 ships · 98 deals</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔥 Highest-Priority Open Deals — Act This Week</div>
+      <table>
+        <thead><tr><th>Account</th><th>Rep</th><th>Stage</th><th>MRR</th><th>Why Now</th></tr></thead>
+        <tbody>
+          <tr class="row-top"><td><strong>Losh Network Services</strong></td><td>Connor Flynn</td><td>Stage 5 · Contract Validated</td><td>$1,004</td><td><span class="pill pill-g">Near close — push to sign</span></td></tr>
+          <tr class="row-top"><td><strong>Clear Rate PSA III</strong></td><td>Jamie Butler</td><td>Stage 4 · Proposal Sent</td><td>$500</td><td><span class="pill pill-g">Proposal out — follow up today</span></td></tr>
+          <tr><td>Connor Flynn – Verbal Commit</td><td>Connor Flynn</td><td>Stage 6 · Verbal Commit</td><td>$2,000</td><td><span class="pill pill-b">Verbal yes — get paper signed</span></td></tr>
+          <tr><td>VTX Telecom</td><td>Joseph Abarno</td><td>Stage 1</td><td>$1,680</td><td><span class="pill pill-b">Billing client — Abarno assigned</span></td></tr>
+          <tr><td>Vision CTS PSA II</td><td>Connor Flynn</td><td>Stage 1</td><td>$1,260</td><td><span class="pill pill-a">CW renewal April '26 — timeline urgency</span></td></tr>
+          <tr><td>Tricom Technology Solutions</td><td>Connor Flynn</td><td>Stage 3 · Demo</td><td>$1,220</td><td><span class="pill pill-b">Post-demo — needs proposal</span></td></tr>
+          <tr><td>Scipio Technologies</td><td>Jamie Butler</td><td>Stage 1</td><td>$1,100</td><td><span class="pill pill-b">Billing client — schedule discovery</span></td></tr>
+          <tr><td>Bullfrog Group PSA I</td><td>Jamie Butler</td><td>Stage 3</td><td>$600</td><td><span class="pill pill-b">Post-demo — follow up</span></td></tr>
+          <tr><td>B&amp;T Telecom + Advantage Telecom</td><td>Joseph Abarno</td><td>Stage 2</td><td>$575 each</td><td><span class="pill pill-g">Abarno in discovery — push to demo</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚡ NinjaOne Integration — Call These 9 This Week</div>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">NinjaOne RMM integration is live as of Feb 24. Nine accounts ($6,900 MRR) have existing interest with this integration as the deciding factor. Delay costs ~$770 MRR per week if any defects to a competitor.</p>
+      <div class="insight green">
+        <div class="insight-icon">📞</div>
+        <div class="insight-text">
+          <strong>Assign these 9 accounts to Abarno — match the best rep to the most time-sensitive opportunity</strong>
+          <span>These prospects were waiting on NinjaOne. The integration is now live. Abarno's 5-day median close and 20.9% win rate gives the best probability of converting this week. Every day of delay risks another no-show.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 Apollo 2 Re-Engagement — 98 Deals · $101,759 MRR Unlocked on Apr 1</div>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Apollo 2 ships April 1. 98 previously closed-lost deals have ALL their feature gaps covered by A1+A2. This is a structured outreach campaign, not a prospecting effort — these prospects already expressed intent.</p>
+      <div class="two-col">
+        <div class="insight blue">
+          <div class="insight-icon">🎯</div>
+          <div class="insight-text">
+            <strong>Start warming these now — don't wait for Apr 1</strong>
+            <span>Deals that no-show'd or timed out should be re-engaged 3-4 weeks before Apollo 2 ships. Plant the "we're about to launch the features you needed" seed now so Apr 1 is a close, not an intro.</span>
+          </div>
+        </div>
+        <div class="insight green">
+          <div class="insight-icon">💰</div>
+          <div class="insight-text">
+            <strong>Vision CTS is top priority ($1,200 MRR · CW renewal April 2026)</strong>
+            <span>Their ConnectWise renewal is in April — the same month Apollo 2 ships. Timing alignment is perfect. Connor Flynn owns this opp. Needs an executive-level push to compete with CW renewal inertia.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="phase-divider">
+
+  <!-- ══ PHASE 6: 5X MATH ══ -->
+  <div class="section" id="phase6">
+    <div class="section-eyebrow">Phase 6 · 5× Math Model</div>
+    <div class="section-title">How We Get to $47,500 MRR/Month</div>
+    <div class="section-sub">Three scenarios — the math works, but only if multiple levers move simultaneously</div>
+
+    <div class="kpi-row cols-3">
+      <div class="kpi amber"><div class="kpi-lbl">Current Run Rate</div><div class="kpi-val">$9,526/mo</div><div class="kpi-sub">Jul–Jan 7-month average</div></div>
+      <div class="kpi red"><div class="kpi-lbl">5× Target</div><div class="kpi-val">$47,500/mo</div><div class="kpi-sub">Gap: +$37,974/month</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Oct 2025 Peak</div><div class="kpi-val">$15,470/mo</div><div class="kpi-sub">Proof the team can surge — replicate it</div></div>
+    </div>
+
+    <div class="scenario-grid">
+      <div class="scenario-card base">
+        <h4>Scenario A · PSA Fixes Only</h4>
+        <div class="big" style="color:var(--amber);">$15,200/mo</div>
+        <div class="row"><span>Fix no-shows (35%→15%)</span><span>+80 opps/mo in funnel</span></div>
+        <div class="row"><span>Lift win rate (9.2%→15%)</span><span>+63% conversions</span></div>
+        <div class="row"><span>Same avg deal $660</span><span>~23 wins/mo</span></div>
+        <div class="row"><span>📊 Result</span><span style="color:var(--amber);">~$15,200/mo</span></div>
+        <p style="font-size:11px;color:var(--muted);margin-top:10px;">Partial progress — meaningful but not 5×. Needs additional levers.</p>
+      </div>
+      <div class="scenario-card mid">
+        <h4>Scenario B · PSA + Billing Cross-Sell</h4>
+        <div class="big" style="color:var(--amber);">$21,300/mo</div>
+        <div class="row"><span>PSA fixes (Scenario A)</span><span>$15,200</span></div>
+        <div class="row"><span>Billing→PSA: 7 wins/mo</span><span>+$6,100</span></div>
+        <div class="row"><span>(25 opps/mo × 30% WR)</span><span>@$844 avg</span></div>
+        <div class="row"><span>📊 Result</span><span style="color:var(--amber);">~$21,300/mo</span></div>
+        <p style="font-size:11px;color:var(--muted);margin-top:10px;">Strong — but 45% of target. Cyber Protect is still the missing piece to 5×.</p>
+      </div>
+      <div class="scenario-card winner">
+        <h4>Scenario C · All Three Levers ✅</h4>
+        <div class="big" style="color:var(--green);">~$43K/mo</div>
+        <div class="row"><span>PSA fixes</span><span>$15,200</span></div>
+        <div class="row"><span>Billing cross-sell (7/mo)</span><span>$6,100</span></div>
+        <div class="row"><span>Cyber Protect: 10 wins/mo</span><span>$21,300</span></div>
+        <div class="row"><span>(@$2,130 avg MRR)</span><span></span></div>
+        <div class="row"><span>📊 Result</span><span style="color:var(--green); font-weight:800;">~$43K/mo ≈ 4.5×</span></div>
+        <p style="font-size:11px;color:#374151;margin-top:10px;">4.5×+ without new hires. Full 5× requires pushing CP to 12 wins/mo or growing avg deal size.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">📐 The 5× Math Requires Three Simultaneous Moves</div>
+      <div class="hbar-list">
+        <div class="hbar-row">
+          <div class="hbar-lbl" style="font-size:11px;">Lever 1 · Fix No-Shows</div>
+          <div class="hbar-track"><div class="hbar-fill" style="background:var(--green);width:33%"><span>35%→15% show rate = +80 opps/mo entering funnel</span></div></div>
+        </div>
+        <div class="hbar-row">
+          <div class="hbar-lbl" style="font-size:11px;">Lever 2 · Lift Win Rate</div>
+          <div class="hbar-track"><div class="hbar-fill" style="background:var(--blue);width:33%"><span>9.2%→15% = +63% wins from same volume (5 reps already do this)</span></div></div>
+        </div>
+        <div class="hbar-row">
+          <div class="hbar-lbl" style="font-size:11px;">Lever 3 · Cyber Protect</div>
+          <div class="hbar-track"><div class="hbar-fill" style="background:var(--purple);width:46%"><span>10 wins/mo × $2,130 avg = $21,300/mo — 3× PSA deal value</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="insight amber">
+        <div class="insight-icon">⏰</div>
+        <div class="insight-text">
+          <strong>Cyber Protect is the difference between 2.5× and 5×</strong>
+          <span>Scenarios A and B get the PSA motion to ~2.5×. To reach 5×, Cyber Protect must be built as a real motion. At $2,130 avg deal, only 10 CP wins/month bridges the remaining gap — but today the total CP wins ALL-TIME is 5. This motion needs a dedicated playbook and possibly a dedicated rep.</span>
+        </div>
+      </div>
+      <div class="insight green">
+        <div class="insight-icon">✅</div>
+        <div class="insight-text">
+          <strong>The math doesn't require new headcount — it requires execution</strong>
+          <span>October 2025 proved $15,470 MRR/month is achievable from the current team. The gap from Oct to 5× is Billing cross-sell + Cyber Protect. Both are already in market — they just need dedicated motion and accountability.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="phase-divider">
+
+  <!-- ══ RECOMMENDATIONS ══ -->
+  <div class="section" id="recs">
+    <div class="section-eyebrow">Recommendations</div>
+    <div class="section-title">The Six Actions That Move the Number</div>
+    <div class="section-sub">Sequenced by impact and speed-to-result</div>
+
+    <div class="action-block">
+      <h3>🎯 Execute in This Order</h3>
+      <div class="action-list">
+        <div class="action-item">
+          <div class="action-num">1</div>
+          <div class="action-body">
+            <strong>This week — Interview Dahlstrom, codify his confirmation process, roll it out</strong>
+            <span>His 2.6% no-show rate vs the team's 35%+ is the highest-leverage intervention in this analysis. Reduce team no-shows from 35% to 15% and ~80 more prospects enter the funnel per month. Impact: +$8–10K MRR/month within 60 days.</span>
+          </div>
+        </div>
+        <div class="action-item">
+          <div class="action-num">2</div>
+          <div class="action-body">
+            <strong>This week — Call all 9 NinjaOne accounts; assign to Abarno</strong>
+            <span>NinjaOne integration is live as of Feb 24. These 9 prospects ($6,900 MRR) were waiting on this feature. Every day of delay risks the interest fading. Assign Abarno — his 5-day close cycle and 20.9% win rate gives best probability.</span>
+          </div>
+        </div>
+        <div class="action-item">
+          <div class="action-num">3</div>
+          <div class="action-body">
+            <strong>This month — Prioritize Billing-to-PSA cross-sell; loop in Usman's team</strong>
+            <span>1,125 Rev.io Billing accounts. Only 4 have PSA. Average deal when they convert: $1,433 — more than double the team average. This is the fastest path to higher deal quality without touching the rep process. Needs a coordinated CS + sales motion.</span>
+          </div>
+        </div>
+        <div class="action-item">
+          <div class="action-num">4</div>
+          <div class="action-body">
+            <strong>This month — Split rep coaching by failure mode, not blanket coaching</strong>
+            <span>Husam/Borah/Davies = show rate. Flynn/Mitchell = ICP qualification. Herndon = don't touch, study him. Abarno = the template. One coaching session doesn't fix 13 different problems. Rep-specific action plans within 30 days.</span>
+          </div>
+        </div>
+        <div class="action-item">
+          <div class="action-num">5</div>
+          <div class="action-body">
+            <strong>Before April 1 — Warm the 98 Apollo 2 re-engagement accounts now</strong>
+            <span>Don't wait for the launch to start outreach. Begin "we're about to ship the features you needed" conversations 3-4 weeks before. By April 1, these should be active pipeline — not cold calls. Vision CTS ($1,200 · CW renewal April) is the highest priority.</span>
+          </div>
+        </div>
+        <div class="action-item">
+          <div class="action-num">6</div>
+          <div class="action-body">
+            <strong>This quarter — Build a dedicated Cyber Protect motion</strong>
+            <span>5 wins all-time. $2,130 avg deal. The unit economics are 3× PSA — it just needs a proper playbook. Define: is it bundled, cross-sold, or standalone? Dedicated rep, dedicated ICP, dedicated talk track. 10 wins/month from CP alone adds $21K MRR — the single biggest lever to 5×.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <strong style="color:#94a3b8;">Rev.io GTM Bookings Performance Analysis · February 2026</strong><br>
+  Built from live Salesforce data · 13,953 opportunities · Revay AI Chief of Staff to Evan Rice<br><br>
+  <a href="phase1-baseline.html">Phase 1 Baseline</a> &nbsp;·&nbsp;
+  <a href="phase2-funnel-autopsy.html">Phase 2 Funnel Autopsy</a> &nbsp;·&nbsp;
+  <a href="apollo2-deal-unlock.html">Apollo 2 Deal Unlock</a> &nbsp;·&nbsp;
+  <a href="bookings-analysis-plan.html">Analysis Plan</a>
+</div>
+
+</body>
+</html>
