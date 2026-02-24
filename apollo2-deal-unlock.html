@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apollo 2 Deal Unlock Analysis — Rev.io</title>
+<style>
+  :root {
+    --brand: #1a56db;
+    --brand-dark: #1e3a8a;
+    --green: #059669;
+    --green-light: #d1fae5;
+    --yellow: #d97706;
+    --yellow-light: #fef3c7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --gray: #6b7280;
+    --gray-light: #f9fafb;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f3f4f6; color: #111827; line-height: 1.5; }
+
+  /* HEADER */
+  .header { background: linear-gradient(135deg, #1e3a8a 0%, #1a56db 100%); color: white; padding: 48px 40px 40px; }
+  .header-meta { font-size: 13px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .header h1 { font-size: 36px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
+  .header .subtitle { font-size: 17px; opacity: 0.85; }
+  .header-badges { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+  .badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 5px 14px; font-size: 13px; }
+
+  /* LAYOUT */
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  .section { margin-bottom: 48px; }
+  .section-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 10px; }
+
+  /* STAT CARDS */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 12px; }
+  .stat-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-top: 4px solid var(--brand); }
+  .stat-card.green { border-top-color: var(--green); }
+  .stat-card.yellow { border-top-color: var(--yellow); }
+  .stat-card.red { border-top-color: var(--red); }
+  .stat-card .label { font-size: 13px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .stat-card .value { font-size: 34px; font-weight: 800; color: #111827; line-height: 1; }
+  .stat-card .sub { font-size: 13px; color: var(--gray); margin-top: 4px; }
+  .stat-card.green .value { color: var(--green); }
+  .stat-card.yellow .value { color: var(--yellow); }
+  .stat-card.red .value { color: var(--red); }
+
+  /* CALLOUT */
+  .callout { background: #fffbeb; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; display: flex; gap: 12px; align-items: flex-start; }
+  .callout.blue { background: #eff6ff; border-color: #93c5fd; border-left-color: var(--brand); }
+  .callout .icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+  .callout .callout-text strong { display: block; font-size: 15px; margin-bottom: 4px; }
+  .callout .callout-text { font-size: 14px; color: #374151; }
+
+  /* TABLES */
+  .table-wrap { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead { background: #f8fafc; }
+  thead th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray); border-bottom: 1px solid var(--border); }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f9fafb; }
+  tbody td { padding: 12px 16px; vertical-align: middle; }
+  .rank { font-weight: 700; color: var(--brand); width: 32px; }
+  .mrr { font-weight: 700; color: #111827; }
+  .mrr-big { font-size: 16px; }
+  .q-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #e0e7ff; color: #3730a3; }
+  .q-badge.q3 { background: #dbeafe; color: #1e40af; }
+  .q-badge.q4 { background: #ede9fe; color: #5b21b6; }
+
+  /* STATUS BADGES */
+  .status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .status.done { background: var(--green-light); color: #065f46; }
+  .status.progress { background: #dbeafe; color: #1e40af; }
+  .status.partial { background: var(--yellow-light); color: #92400e; }
+  .status.not-started { background: #f3f4f6; color: #374151; }
+  .status.hot { background: #fee2e2; color: #991b1b; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { display: flex; align-items: center; gap: 10px; }
+  .progress-bar { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; min-width: 80px; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; background: var(--brand); }
+  .progress-bar-fill.high { background: var(--green); }
+  .progress-bar-fill.med { background: var(--yellow); }
+  .progress-pct { font-size: 13px; font-weight: 600; color: #374151; width: 34px; text-align: right; }
+
+  /* FEATURE TAGS */
+  .feature-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ftag { background: #eff6ff; color: #1d4ed8; border-radius: 6px; padding: 2px 7px; font-size: 11px; }
+  .ftag.red { background: #fee2e2; color: #991b1b; }
+
+  /* TWO COL */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } .header h1 { font-size: 26px; } }
+
+  /* TALKING POINTS */
+  .tp-list { list-style: none; }
+  .tp-list li { background: white; border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid var(--brand); }
+  .tp-list li .tp-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); margin-bottom: 6px; }
+  .tp-list li .tp-text { font-size: 14px; color: #374151; }
+
+  /* FOOTER */
+  .footer { text-align: center; padding: 32px 24px; color: var(--gray); font-size: 13px; border-top: 1px solid var(--border); background: white; }
+
+  /* NINJA HIGHLIGHT */
+  .ninja-box { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; border-radius: 12px; padding: 28px 32px; margin-bottom: 24px; }
+  .ninja-box h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .ninja-box p { opacity: 0.9; font-size: 15px; margin-bottom: 16px; }
+  .ninja-accounts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ninja-account { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 12px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="max-width:1100px; margin:0 auto;">
+    <div class="header-meta">Rev.io Product Intelligence · February 2026</div>
+    <h1>Apollo 2 Deal Unlock Analysis</h1>
+    <div class="subtitle">Which 2025 closed-lost deals become re-engageable when Apollo 2 ships?</div>
+    <div class="header-badges">
+      <span class="badge">📊 133 Feature-Gap Deals Analyzed</span>
+      <span class="badge">🗓 Apollo 2 Target: April 1, 2026</span>
+      <span class="badge">📁 Source: Salesforce × Notion Roadmap</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="section">
+    <div class="section-title">📈 Executive Summary</div>
+    <div class="stat-grid">
+      <div class="stat-card green">
+        <div class="label">Fully Unlocked by Apollo 2</div>
+        <div class="value">$99,564</div>
+        <div class="sub">96 deals — all blockers addressed</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="label">Partially Unlocked</div>
+        <div class="value">$31,065</div>
+        <div class="sub">26 deals — some gaps remain</div>
+      </div>
+      <div class="stat-card red">
+        <div class="label">Blocked (No A2 Coverage)</div>
+        <div class="value">$12,541</div>
+        <div class="sub">11 deals — needs future roadmap work</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total Feature-Gap MRR</div>
+        <div class="value">$143,170</div>
+        <div class="sub">Of 2,269 total 2025 closed-lost deals</div>
+      </div>
+    </div>
+    <div class="callout blue" style="margin-top:16px;">
+      <div class="icon">💡</div>
+      <div class="callout-text"><strong>Context</strong>Only 133 of 2,269 closed-lost deals were flagged as lost due to missing features (6%). The remaining 94% were lost to timing, no-shows, non-responsiveness, or price. The opportunity below is pure feature-recovery pipeline.</div>
+    </div>
+  </div>
+
+  <!-- NINJA ALERT -->
+  <div class="ninja-box">
+    <h3>⚡ Act Now — NinjaOne Integration Is Live</h3>
+    <p>RMM-NinjaOne Phase 1 (Account Sync) hit <strong>85% completion with a revised date of February 24, 2026</strong>. That's today. 9 accounts representing <strong>$6,900 MRR</strong> were lost specifically because this integration didn't exist. Get these calls out this week.</p>
+    <div class="ninja-accounts">
+      <span class="ninja-account">Safe Data Systems</span>
+      <span class="ninja-account">Yeti Networks</span>
+      <span class="ninja-account">Clever Tech Pros ×2</span>
+      <span class="ninja-account">PROACTIVERISK</span>
+      <span class="ninja-account">DefenTec</span>
+      <span class="ninja-account">SeaGlass Technology</span>
+      <span class="ninja-account">SelectQoS</span>
+      <span class="ninja-account">Tecflow Technology</span>
+      <span class="ninja-account">Voytel</span>
+    </div>
+  </div>
+
+  <!-- FEATURE UNLOCK TABLE -->
+  <div class="section">
+    <div class="section-title">🔓 What Apollo 2 Unlocks (by MRR)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature Gap</th>
+            <th>A2 Coverage</th>
+            <th>Deals</th>
+            <th>MRR Unlocked</th>
+            <th>Key Apollo 2 Work</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Project Management</strong></td>
+            <td><span class="status progress">● In Progress</span></td>
+            <td>75</td>
+            <td class="mrr mrr-big">$93,337</td>
+            <td>PM Enhancements (70%), Milestones (50%), Project Billing (15%), Job Costing (Priority #1)</td>
+          </tr>
+          <tr>
+            <td><strong>Job Costing</strong></td>
+            <td><span class="status not-started">● On Roadmap</span></td>
+            <td>32</td>
+            <td class="mrr">$40,151</td>
+            <td>Job Costing &amp; Profitability — Company Priority #1</td>
+          </tr>
+          <tr>
+            <td><strong>Sales Opportunities</strong></td>
+            <td><span class="status not-started">● On Roadmap</span></td>
+            <td>19</td>
+            <td class="mrr">$37,156</td>
+            <td>Sales Opportunity Management</td>
+          </tr>
+          <tr>
+            <td><strong>Mobile App / GPS Tracking</strong></td>
+            <td><span class="status progress">● In Progress</span></td>
+            <td>28</td>
+            <td class="mrr">$30,496</td>
+            <td>GPS Tracking (5%), Mobile Ticketing (95%), Offline Capability, Push Notifications</td>
+          </tr>
+          <tr>
+            <td><strong>Progressive Billing</strong></td>
+            <td><span class="status partial">● Partial</span></td>
+            <td>21</td>
+            <td class="mrr">$25,988</td>
+            <td>Project Billing model (15%) + Flexible Recurring Billing (Dev Complete)</td>
+          </tr>
+          <tr>
+            <td><strong>Custom Fields / Reporting</strong></td>
+            <td><span class="status progress">● In Progress</span></td>
+            <td>17</td>
+            <td class="mrr">$24,171</td>
+            <td>Custom Reports (65%), Multi-Layout Custom Fields (50%)</td>
+          </tr>
+          <tr>
+            <td><strong>Enhanced Ticket Views</strong></td>
+            <td><span class="status partial">● Partial</span></td>
+            <td>20</td>
+            <td class="mrr">$22,765</td>
+            <td>Mobile Ticketing Enhancements (95%); SLA Management (Not Started)</td>
+          </tr>
+          <tr>
+            <td><strong>Customer Portal Integration</strong></td>
+            <td><span class="status not-started">● On Roadmap</span></td>
+            <td>14</td>
+            <td class="mrr">$12,479</td>
+            <td>Enhanced Customer Portal (Not Started), Contact Enhancements (Done)</td>
+          </tr>
+          <tr>
+            <td><strong>Inventory</strong></td>
+            <td><span class="status progress">● In Progress</span></td>
+            <td>13</td>
+            <td class="mrr">$12,116</td>
+            <td>Deployed Inventory, Serial # History (40%), Specific Valuation (Done)</td>
+          </tr>
+          <tr>
+            <td><strong>NinjaOne RMM</strong></td>
+            <td><span class="status hot">⚡ Near Done</span></td>
+            <td>9</td>
+            <td class="mrr">$6,900</td>
+            <td>Phase 1 Account Sync — 85% complete, due Feb 24</td>
+          </tr>
+          <tr>
+            <td><strong>SLAs</strong></td>
+            <td><span class="status not-started">● On Roadmap</span></td>
+            <td>6</td>
+            <td class="mrr">$5,765</td>
+            <td>SLA Management — not started, XL effort</td>
+          </tr>
+          <tr>
+            <td><strong>CPQ</strong></td>
+            <td><span class="status partial">● Partial</span></td>
+            <td>4</td>
+            <td class="mrr">$6,305</td>
+            <td>Quoting &amp; Signature Capture (15%), Product Catalog for Quotes (15%)</td>
+          </tr>
+          <tr>
+            <td><strong>Netsuite Integration</strong></td>
+            <td><span class="status progress">● In Progress</span></td>
+            <td>1</td>
+            <td class="mrr">$3,900</td>
+            <td>Netsuite for Billing — 60% complete, due Mar 6</td>
+          </tr>
+          <tr>
+            <td><strong>CMS Integration</strong></td>
+            <td><span class="status not-started">● On Roadmap</span></td>
+            <td>3</td>
+            <td class="mrr">$3,100</td>
+            <td>CMS Integration — 10% complete, due Mar 20</td>
+          </tr>
+          <tr>
+            <td><strong>N-Able RMM</strong></td>
+            <td><span class="status not-started">● On Roadmap</span></td>
+            <td>1</td>
+            <td class="mrr">$1,100</td>
+            <td>Phase 1 Account Sync — due Mar 31</td>
+          </tr>
+          <tr>
+            <td><strong>RapidResponse</strong></td>
+            <td><span class="status not-started">● On Roadmap</span></td>
+            <td>1</td>
+            <td class="mrr">$575</td>
+            <td>15% complete — due Mar 27</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px;color:#6b7280;margin-top:10px;">Note: Deals with multiple feature gaps appear in each relevant row. MRR reflects deals containing that feature.</p>
+  </div>
+
+  <!-- TOP RE-ENGAGEMENT LIST -->
+  <div class="section">
+    <div class="section-title">🎯 Top 30 Re-Engagement Targets</div>
+    <div class="callout">
+      <div class="icon">📌</div>
+      <div class="callout-text"><strong>These accounts were lost ONLY because of features Apollo 2 delivers</strong> — no other blocker. Start here. Top 30 represent $52,180 MRR. Full list of 96 accounts is available.</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Account</th>
+            <th>MRR</th>
+            <th>Lost</th>
+            <th>Feature Gaps (all covered by Apollo 2)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="rank">1</td><td><strong>Telsco Security Systems</strong></td><td class="mrr">$4,290</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Ticket Views</span><span class="ftag">Sales Opps</span><span class="ftag">CPQ</span><span class="ftag">Custom Fields</span><span class="ftag">Progressive Billing</span></div></td></tr>
+          <tr><td class="rank">2</td><td><strong>Global Guardian Asset Security</strong></td><td class="mrr">$3,900</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Netsuite</span></div></td></tr>
+          <tr><td class="rank">3</td><td><strong>Acoustic Design Systems</strong></td><td class="mrr">$3,810</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Customer Portal</span></div></td></tr>
+          <tr><td class="rank">4</td><td><strong>NetWatch, Inc.</strong></td><td class="mrr">$3,500</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Mobile/GPS</span><span class="ftag">Sales Opps</span></div></td></tr>
+          <tr><td class="rank">5</td><td><strong>Audio Sentry</strong></td><td class="mrr">$2,800</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Sales Opps</span><span class="ftag">Custom Fields</span><span class="ftag">Progressive Billing</span><span class="ftag">Job Costing</span></div></td></tr>
+          <tr><td class="rank">6</td><td><strong>Oasis Smart Homes</strong></td><td class="mrr">$2,450</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Mobile/GPS</span></div></td></tr>
+          <tr><td class="rank">7</td><td><strong>Ambit Solutions, LLC</strong></td><td class="mrr">$2,450</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Sales Opps</span></div></td></tr>
+          <tr><td class="rank">8</td><td><strong>Affiliated Technology Solutions</strong></td><td class="mrr">$2,450</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Ticket Views</span><span class="ftag">Custom Fields</span></div></td></tr>
+          <tr><td class="rank">9</td><td><strong>SWEPT</strong></td><td class="mrr">$2,420</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">Mobile/GPS</span></div></td></tr>
+          <tr><td class="rank">10</td><td><strong>Atlanta Home Theater</strong></td><td class="mrr">$2,100</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Sales Opps</span></div></td></tr>
+          <tr><td class="rank">11</td><td><strong>CCI Network Services</strong></td><td class="mrr">$2,100</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Ticket Views</span><span class="ftag">Sales Opps</span></div></td></tr>
+          <tr><td class="rank">12</td><td><strong>Net Tech</strong></td><td class="mrr">$1,850</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Inventory</span></div></td></tr>
+          <tr><td class="rank">13</td><td><strong>Security101 – West Palm Beach</strong></td><td class="mrr">$1,554</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">Inventory</span><span class="ftag">Sales Opps</span></div></td></tr>
+          <tr><td class="rank">14</td><td><strong>AV Outfitters</strong></td><td class="mrr">$1,514</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span></div></td></tr>
+          <tr><td class="rank">15</td><td><strong>Interactive Security Systems</strong></td><td class="mrr">$1,480</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">Inventory</span></div></td></tr>
+          <tr><td class="rank">16</td><td><strong>Grey Matter Technologies</strong></td><td class="mrr">$1,412</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Job Costing</span></div></td></tr>
+          <tr><td class="rank">17</td><td><strong>New York Security Solutions</strong></td><td class="mrr">$1,378</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Mobile/GPS</span><span class="ftag">Custom Fields</span><span class="ftag">Progressive Billing</span><span class="ftag">Job Costing</span></div></td></tr>
+          <tr><td class="rank">18</td><td><strong>NetCentra</strong></td><td class="mrr">$1,365</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Mobile/GPS</span><span class="ftag">Progressive Billing</span><span class="ftag">Job Costing</span></div></td></tr>
+          <tr><td class="rank">19</td><td><strong>Allen Visual Systems, Inc.</strong></td><td class="mrr">$1,352</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Inventory</span><span class="ftag">Sales Opps</span><span class="ftag">Progressive Billing</span><span class="ftag">Job Costing</span></div></td></tr>
+          <tr><td class="rank">20</td><td><strong>GSC Systems</strong></td><td class="mrr">$1,332</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span></div></td></tr>
+          <tr><td class="rank">21</td><td><strong>Security Center USA</strong></td><td class="mrr">$1,300</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Mobile/GPS</span><span class="ftag">Sales Opps</span><span class="ftag">Progressive Billing</span><span class="ftag">Job Costing</span><span class="ftag">CMS</span></div></td></tr>
+          <tr><td class="rank">22</td><td><strong>Lane Electronic &amp; Alarm Systems</strong></td><td class="mrr">$1,300</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Mobile/GPS</span><span class="ftag">Progressive Billing</span><span class="ftag">Job Costing</span><span class="ftag">CMS</span></div></td></tr>
+          <tr><td class="rank">23</td><td><strong>Open Tier Systems</strong></td><td class="mrr">$1,258</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span></div></td></tr>
+          <tr><td class="rank">24</td><td><strong>Broadband Office Solutions</strong></td><td class="mrr">$1,200</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">Custom Fields</span></div></td></tr>
+          <tr><td class="rank">25</td><td><strong>Crescent Multimedia Solutions</strong></td><td class="mrr">$1,142</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span></div></td></tr>
+          <tr><td class="rank">26</td><td><strong>The ProMedia Group</strong></td><td class="mrr">$1,110</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Job Costing</span></div></td></tr>
+          <tr><td class="rank">27</td><td><strong>Atlantic Security Automation Partners</strong></td><td class="mrr">$1,100</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">Mobile/GPS</span></div></td></tr>
+          <tr><td class="rank">28</td><td><strong>W. O'Donnell Consulting</strong></td><td class="mrr">$1,100</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Ticket Views</span><span class="ftag">SLAs</span><span class="ftag">N-Able RMM</span></div></td></tr>
+          <tr><td class="rank">29</td><td><strong>Qovo Solutions Inc</strong></td><td class="mrr">$1,100</td><td><span class="q-badge q4">Q4-2025</span></td><td><div class="feature-tags"><span class="ftag">PM</span><span class="ftag">Mobile/GPS</span></div></td></tr>
+          <tr><td class="rank">30</td><td><strong>HEDnorth</strong></td><td class="mrr">$1,053</td><td><span class="q-badge q3">Q3-2025</span></td><td><div class="feature-tags"><span class="ftag">Mobile/GPS</span><span class="ftag">Custom Fields</span><span class="ftag">Job Costing</span></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- READINESS TIMELINE -->
+  <div class="section">
+    <div class="section-title">📅 Apollo 2 Feature Readiness</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Feature</th><th>Status</th><th>Progress</th><th>Est. Ready</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>RMM-NinjaOne Phase 1</td><td><span class="status hot">⚡ Near Done</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill high" style="width:85%"></div></div><span class="progress-pct">85%</span></div></td><td><strong>Feb 24, 2026</strong></td></tr>
+          <tr><td>Ticketing Enhancements (Mobile)</td><td><span class="status progress">● In Progress</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill high" style="width:95%"></div></div><span class="progress-pct">95%</span></div></td><td>Soon</td></tr>
+          <tr><td>PM Apollo 1 Enhancements</td><td><span class="status progress">● In Progress</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill high" style="width:70%"></div></div><span class="progress-pct">70%</span></div></td><td>Before Apr 1</td></tr>
+          <tr><td>Custom Reports</td><td><span class="status progress">● In Progress</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill med" style="width:65%"></div></div><span class="progress-pct">65%</span></div></td><td>Before Apr 1</td></tr>
+          <tr><td>Project Milestones</td><td><span class="status progress">● In Progress</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill med" style="width:50%"></div></div><span class="progress-pct">50%</span></div></td><td>Before Apr 1</td></tr>
+          <tr><td>Custom Fields Multi-Layout</td><td><span class="status progress">● In Progress</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill med" style="width:50%"></div></div><span class="progress-pct">50%</span></div></td><td>Before Apr 1</td></tr>
+          <tr><td>Netsuite for Billing</td><td><span class="status progress">● In Progress</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill med" style="width:60%"></div></div><span class="progress-pct">60%</span></div></td><td><strong>Mar 6</strong></td></tr>
+          <tr><td>CMS Integration</td><td><span class="status not-started">● On Roadmap</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:10%"></div></div><span class="progress-pct">10%</span></div></td><td><strong>Mar 20</strong></td></tr>
+          <tr><td>Rapid Response Integration</td><td><span class="status not-started">● On Roadmap</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:15%"></div></div><span class="progress-pct">15%</span></div></td><td><strong>Mar 27</strong></td></tr>
+          <tr><td>RMM-N-Able Phase 1</td><td><span class="status not-started">● On Roadmap</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:10%"></div></div><span class="progress-pct">10%</span></div></td><td><strong>Mar 31</strong></td></tr>
+          <tr><td>Job Costing &amp; Profitability</td><td><span class="status not-started">● Not Started</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:0%"></div></div><span class="progress-pct">0%</span></div></td><td>Apr 1 target</td></tr>
+          <tr><td>Sales Opportunity Management</td><td><span class="status not-started">● Not Started</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:0%"></div></div><span class="progress-pct">0%</span></div></td><td>Apr 1 target</td></tr>
+          <tr><td>SLA Management</td><td><span class="status not-started">● Not Started</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:0%"></div></div><span class="progress-pct">0%</span></div></td><td>Apr 1 target</td></tr>
+          <tr><td>Enhanced Customer Portal</td><td><span class="status not-started">● Not Started</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:0%"></div></div><span class="progress-pct">0%</span></div></td><td>Apr 1 target</td></tr>
+          <tr><td>GPS Tracking</td><td><span class="status progress">● In Progress</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:5%"></div></div><span class="progress-pct">5%</span></div></td><td>Apr 1 target</td></tr>
+          <tr><td>Project Billing</td><td><span class="status progress">● In Progress</span></td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-bar-fill" style="width:15%"></div></div><span class="progress-pct">15%</span></div></td><td>Apr 1 target</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GAPS NOT COVERED -->
+  <div class="section">
+    <div class="section-title">🚧 Feature Gaps Not Covered by Apollo 2</div>
+    <div class="callout">
+      <div class="icon">📋</div>
+      <div class="callout-text"><strong>Backlog input for Product</strong> — These features were cited in lost deals but have no Apollo 2 coverage. Total blocked MRR: <strong>$52,496</strong> (across partially + fully blocked deals).</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Feature</th><th>Deals Affected</th><th>MRR Blocked</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>QuickBooks Desktop</strong></td><td>3</td><td class="mrr">$7,710</td><td>QBO Online migration in A2; Desktop unclear</td></tr>
+          <tr><td><strong>Integration — Sage50</strong></td><td>2</td><td class="mrr">$7,040</td><td>Accounting integration (Sage desktop)</td></tr>
+          <tr><td><strong>Knowledgebase</strong></td><td>7</td><td class="mrr">$6,500</td><td>Frequently bundled with Enhanced Ticket Views asks</td></tr>
+          <tr><td><strong>Integration — TD Synnex</strong></td><td>5</td><td class="mrr">$5,950</td><td>Distribution partner integration</td></tr>
+          <tr><td><strong>Internationalization</strong></td><td>4</td><td class="mrr">$5,679</td><td>Multi-language / multi-currency support</td></tr>
+          <tr><td><strong>Subcontractors</strong></td><td>4</td><td class="mrr">$3,800</td><td>Field service subcontractor workflow</td></tr>
+          <tr><td><strong>Integration — HubSpot</strong></td><td>3</td><td class="mrr">$3,785</td><td>CRM integration</td></tr>
+          <tr><td><strong>Integration — Xero</strong></td><td>3</td><td class="mrr">$3,450</td><td>Accounting (UK/AU market appeal)</td></tr>
+          <tr><td><strong>Integration — DTools</strong></td><td>4</td><td class="mrr">$2,837</td><td>AV/low-voltage project management</td></tr>
+          <tr><td><strong>Integration — IT Glue</strong></td><td>4</td><td class="mrr">$2,075</td><td>IT documentation platform</td></tr>
+          <tr><td><strong>Integration — Zoho</strong></td><td>2</td><td class="mrr">$1,600</td><td>CRM integration</td></tr>
+          <tr><td><strong>Integration — Field Nation</strong></td><td>2</td><td class="mrr">$1,570</td><td>Field workforce management</td></tr>
+          <tr><td><strong>Integration — SageIntact</strong></td><td>1</td><td class="mrr">$500</td><td>Mid-market accounting</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TALKING POINTS -->
+  <div class="section">
+    <div class="section-title">💬 Sales Talking Points</div>
+    <ul class="tp-list">
+      <li>
+        <div class="tp-label">Opening the re-engagement call</div>
+        <div class="tp-text">"The reason you walked away is being addressed. [Feature X] is part of our April 2026 release — Apollo 2. I'd love to get you back in for a demo the week of April 6th so you can see it firsthand."</div>
+      </li>
+      <li>
+        <div class="tp-label">For NinjaOne accounts (9 deals)</div>
+        <div class="tp-text">"The NinjaOne RMM integration — Phase 1 Account Sync — is live as of this week. That was the piece you needed. Want to revisit?"</div>
+      </li>
+      <li>
+        <div class="tp-label">For Project Management accounts (75 deals — the big one)</div>
+        <div class="tp-text">"Project Management was your #1 ask. Apollo 2 adds Job Costing, Project Billing, Milestones, and Activity Feeds on top of the core PM module we launched in September. It's a materially different product than what you evaluated."</div>
+      </li>
+      <li>
+        <div class="tp-label">For Job Costing accounts (32 deals)</div>
+        <div class="tp-text">"Job Costing &amp; Profitability is Company Priority #1 in Apollo 2. It surfaces real-time margin by project — cost vs. budget vs. actual — so you're never surprised at close. This ships April 1."</div>
+      </li>
+      <li>
+        <div class="tp-label">Qualifying before re-engaging</div>
+        <div class="tp-text">Check if the account signed with a competitor before calling. Q4-2025 losses are highest priority — they're the freshest. If they went with ConnectWise or Autotask, lead with the switching cost angle.</div>
+      </li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="footer">
+  Prepared by Revay · AI Chief of Staff to Evan Rice, Rev.io · February 24, 2026<br>
+  Data: Salesforce Closed Lost 2025 (2,269 deals) × Notion Apollo 2 Roadmap (109 features)
+</div>
+
+</body>
+</html>
