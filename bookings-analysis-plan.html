@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bookings Performance Analysis Plan — Rev.io</title>
+<style>
+  :root {
+    --brand: #1a56db;
+    --brand-dark: #1e3a8a;
+    --brand-light: #eff6ff;
+    --green: #059669;
+    --green-light: #d1fae5;
+    --yellow: #d97706;
+    --yellow-light: #fef3c7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --purple: #7c3aed;
+    --purple-light: #ede9fe;
+    --gray: #6b7280;
+    --gray-light: #f9fafb;
+    --border: #e5e7eb;
+    --dark: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f3f4f6; color: var(--dark); line-height: 1.6; }
+
+  /* HEADER */
+  .header { background: linear-gradient(135deg, #1e3a8a 0%, #1a56db 100%); color: white; padding: 56px 40px 48px; }
+  .header-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; margin-bottom: 14px; }
+  .header h1 { font-size: 40px; font-weight: 800; line-height: 1.15; margin-bottom: 12px; }
+  .header .sub { font-size: 18px; opacity: 0.85; max-width: 680px; line-height: 1.5; }
+  .header-meta { display: flex; gap: 24px; margin-top: 28px; flex-wrap: wrap; }
+  .header-meta span { font-size: 13px; opacity: 0.75; display: flex; align-items: center; gap: 6px; }
+
+  /* LAYOUT */
+  .container { max-width: 1060px; margin: 0 auto; padding: 48px 24px 64px; }
+  .section { margin-bottom: 52px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brand); margin-bottom: 8px; }
+  .section-title { font-size: 26px; font-weight: 800; color: var(--dark); margin-bottom: 6px; }
+  .section-sub { font-size: 15px; color: var(--gray); margin-bottom: 28px; }
+
+  /* THESIS */
+  .thesis-box { background: var(--brand-dark); color: white; border-radius: 14px; padding: 36px 40px; margin-bottom: 20px; }
+  .thesis-box h2 { font-size: 22px; font-weight: 800; margin-bottom: 16px; }
+  .thesis-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 24px; }
+  .thesis-stat { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.15); }
+  .thesis-stat .val { font-size: 32px; font-weight: 800; line-height: 1; }
+  .thesis-stat .lbl { font-size: 12px; opacity: 0.75; margin-top: 4px; }
+
+  /* GOAL CARDS */
+  .goal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
+  .goal-card { border-radius: 12px; padding: 28px 28px 24px; position: relative; overflow: hidden; }
+  .goal-card.psa { background: var(--brand-light); border: 1.5px solid #bfdbfe; }
+  .goal-card.cyber { background: var(--purple-light); border: 1.5px solid #c4b5fd; }
+  .goal-card .product { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray); margin-bottom: 6px; }
+  .goal-card .multiplier { font-size: 52px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+  .goal-card.psa .multiplier { color: var(--brand); }
+  .goal-card.cyber .multiplier { color: var(--purple); }
+  .goal-card .desc { font-size: 14px; color: #374151; }
+
+  /* PHASE CARDS */
+  .phase-grid { display: flex; flex-direction: column; gap: 20px; }
+  .phase-card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; display: grid; grid-template-columns: 80px 1fr; }
+  .phase-num { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; gap: 6px; }
+  .phase-num .num { font-size: 28px; font-weight: 900; line-height: 1; }
+  .phase-card:nth-child(1) .phase-num { background: #eff6ff; color: var(--brand); }
+  .phase-card:nth-child(2) .phase-num { background: #fef3c7; color: var(--yellow); }
+  .phase-card:nth-child(3) .phase-num { background: #d1fae5; color: var(--green); }
+  .phase-card:nth-child(4) .phase-num { background: #ede9fe; color: var(--purple); }
+  .phase-card:nth-child(5) .phase-num { background: #fee2e2; color: var(--red); }
+  .phase-card:nth-child(6) .phase-num { background: #111827; color: white; }
+  .phase-body { padding: 24px 28px; }
+  .phase-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+  .phase-title { font-size: 18px; font-weight: 700; color: var(--dark); }
+  .phase-question { font-size: 13px; color: var(--gray); font-style: italic; margin-bottom: 12px; }
+  .phase-timing { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: #f3f4f6; color: var(--gray); white-space: nowrap; }
+  .bullet-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .bullet-list li { font-size: 14px; color: #374151; padding-left: 18px; position: relative; }
+  .bullet-list li::before { content: '→'; position: absolute; left: 0; color: var(--brand); font-weight: 700; }
+  .phase-deliverable { margin-top: 14px; background: #f8fafc; border-left: 3px solid var(--brand); padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 13px; color: #374151; }
+  .phase-deliverable strong { color: var(--dark); }
+
+  /* CYBER SPECIAL */
+  .cyber-box { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 28px 32px; border-top: 4px solid var(--purple); }
+  .cyber-box h3 { font-size: 18px; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+  .cyber-box .sub { font-size: 14px; color: var(--gray); margin-bottom: 18px; }
+  .cyber-questions { display: flex; flex-direction: column; gap: 10px; }
+  .cyber-q { display: flex; gap: 12px; background: var(--purple-light); border-radius: 8px; padding: 12px 16px; font-size: 14px; color: #374151; align-items: flex-start; }
+  .cyber-q .icon { font-size: 16px; flex-shrink: 0; }
+
+  /* START TODAY */
+  .today-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .today-card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 22px 20px; border-top: 4px solid var(--brand); }
+  .today-card .num { font-size: 32px; font-weight: 900; color: var(--brand); line-height: 1; margin-bottom: 8px; }
+  .today-card h4 { font-size: 15px; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+  .today-card p { font-size: 13px; color: var(--gray); line-height: 1.5; }
+
+  /* TIMELINE */
+  .timeline { display: flex; gap: 0; margin-bottom: 8px; }
+  .timeline-item { flex: 1; text-align: center; }
+  .timeline-bar { height: 8px; background: #e5e7eb; position: relative; }
+  .timeline-bar.done { background: var(--brand); }
+  .timeline-bar.active { background: linear-gradient(90deg, var(--brand), #93c5fd); }
+  .timeline-bar.future { background: #e5e7eb; }
+  .timeline-label { font-size: 11px; color: var(--gray); margin-top: 6px; font-weight: 600; }
+
+  /* CALLOUT */
+  .callout { border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; display: flex; gap: 12px; align-items: flex-start; }
+  .callout.blue { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .callout .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout p { font-size: 14px; color: #1e3a8a; line-height: 1.5; }
+  .callout p strong { display: block; margin-bottom: 2px; font-size: 15px; }
+
+  /* FOOTER */
+  .footer { background: white; border-top: 1px solid var(--border); padding: 24px; text-align: center; color: var(--gray); font-size: 13px; }
+
+  @media (max-width: 680px) {
+    .header h1 { font-size: 28px; }
+    .goal-grid { grid-template-columns: 1fr; }
+    .thesis-stat-row { grid-template-columns: 1fr; }
+    .today-grid { grid-template-columns: 1fr; }
+    .phase-card { grid-template-columns: 60px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="max-width:1060px; margin:0 auto;">
+    <div class="header-eyebrow">Rev.io · Sales Intelligence</div>
+    <h1>Bookings Performance<br>Analysis Plan</h1>
+    <div class="sub">A structured approach to diagnosing and systematically improving PSA and Cyber Protect bookings — built to support 5–10x growth over the next several months.</div>
+    <div class="header-meta">
+      <span>📅 February 2026</span>
+      <span>📊 Live Salesforce Data</span>
+      <span>⚡ Prepared by Revay</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- GOALS -->
+  <div class="section">
+    <div class="section-label">Objective</div>
+    <div class="section-title">The Targets</div>
+    <div class="section-sub">What we're building toward — and why this requires a systems analysis, not just more activity.</div>
+    <div class="goal-grid">
+      <div class="goal-card psa">
+        <div class="product">PSA Web</div>
+        <div class="multiplier">5×</div>
+        <div class="desc">5x current monthly PSA bookings (MRR) over the next several months through systematic funnel improvement, rep performance optimization, and Apollo 2 re-engagement.</div>
+      </div>
+      <div class="goal-card cyber">
+        <div class="product">Cyber Protect (RMM &amp; EDR)</div>
+        <div class="multiplier">5–10×</div>
+        <div class="desc">5–10x current Cyber Protect monthly bookings — a newer motion requiring its own playbook distinct from PSA, focused on ICP clarity and potentially a dedicated sales motion.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THESIS -->
+  <div class="section">
+    <div class="section-label">Core Thesis</div>
+    <div class="section-title">This is a Sales System Problem</div>
+    <div class="section-sub">Before we design the plan, we need to agree on what we're actually fixing.</div>
+    <div class="thesis-box">
+      <h2>The data already tells us where to look</h2>
+      <p style="opacity:0.85; font-size:15px; max-width:700px;">An analysis of 2,269 closed-lost deals from 2025 reveals that the overwhelming majority of losses have nothing to do with the product. This isn't a product problem waiting for Apollo 2 to solve it — it's a sales execution problem that can be addressed now.</p>
+      <div class="thesis-stat-row">
+        <div class="thesis-stat">
+          <div class="val">67%</div>
+          <div class="lbl">of losses due to sales execution — no-shows, non-responsive, timing</div>
+        </div>
+        <div class="thesis-stat">
+          <div class="val">11%</div>
+          <div class="lbl">of losses due to product gaps — the rest is in the rep's hands</div>
+        </div>
+        <div class="thesis-stat">
+          <div class="val">$99K+</div>
+          <div class="lbl">MRR unlocked by Apollo 2 — re-engagement pipeline ready now</div>
+        </div>
+      </div>
+    </div>
+    <div class="callout blue">
+      <div class="icon">💡</div>
+      <p><strong>What this means for the plan</strong>The path to 5x isn't more leads — it's diagnosing exactly where deals die and fixing those stages. Rep performance variance will likely be the biggest single lever. We need to find who's winning consistently, understand what they do differently, and systematize it across the team.</p>
+    </div>
+  </div>
+
+  <!-- PHASES -->
+  <div class="section">
+    <div class="section-label">The Plan</div>
+    <div class="section-title">Six Phases of Analysis</div>
+    <div class="section-sub">Sequenced from "what do we have right now" to "what exactly needs to be true to hit 5x."</div>
+    <div class="phase-grid">
+
+      <div class="phase-card">
+        <div class="phase-num"><span class="num">1</span><span>Week 1</span></div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div>
+              <div class="phase-title">Establish the Baseline</div>
+              <div class="phase-question">"What are we actually doing right now?"</div>
+            </div>
+            <span class="phase-timing">Week 1</span>
+          </div>
+          <ul class="bullet-list">
+            <li>Monthly PSA and Cyber Protect wins + MRR — last 12 months, trended</li>
+            <li>Pipeline snapshot — open deals by product, stage, rep, and age</li>
+            <li>Win rate by product — PSA vs. Cyber Protect are different machines</li>
+            <li>Average deal size by product, trended over time</li>
+            <li>Average sales cycle length (days created → closed) by product</li>
+          </ul>
+          <div class="phase-deliverable"><strong>Deliverable:</strong> Baseline scorecard — the single source of truth everything else measures against. Sets the real 5x starting point in actual dollars.</div>
+        </div>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-num"><span class="num">2</span><span>Week 1–2</span></div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div>
+              <div class="phase-title">Funnel Autopsy</div>
+              <div class="phase-question">"Where exactly are deals dying — and how many?"</div>
+            </div>
+            <span class="phase-timing">Week 1–2</span>
+          </div>
+          <ul class="bullet-list">
+            <li>Stage-by-stage conversion rates for PSA and Cyber Protect separately</li>
+            <li>Loss reason breakdown by stage — where in the funnel is execution failing?</li>
+            <li>Stalled deals analysis — open deals with no activity in 30+ days</li>
+            <li>No-show and non-responsive rate — likely the single biggest leak in the funnel</li>
+            <li>Deals lost in the last 90 days for non-product reasons — immediate re-engagement candidates</li>
+          </ul>
+          <div class="phase-deliverable"><strong>Deliverable:</strong> Funnel conversion waterfall by product. Tells us whether we have a volume problem (not enough at top), a conversion problem (dying mid-funnel), or a close problem — each requires a different fix.</div>
+        </div>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-num"><span class="num">3</span><span>Week 2</span></div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div>
+              <div class="phase-title">Rep Performance Benchmarking</div>
+              <div class="phase-question">"What does winning look like, and who's doing it?"</div>
+            </div>
+            <span class="phase-timing">Week 2</span>
+          </div>
+          <ul class="bullet-list">
+            <li>Win rate by rep, by product — find the outliers in both directions</li>
+            <li>Average cycle time by rep — fast closers vs. slow, and what's different</li>
+            <li>Deal volume by rep — are some reps running too few deals to generate signal?</li>
+            <li>Pipeline hygiene by rep — stage accuracy and activity logging quality</li>
+            <li>Top performer profile — what behaviors, deal types, and segments do winners share?</li>
+          </ul>
+          <div class="phase-deliverable"><strong>Deliverable:</strong> Rep ranking on PSA and Cyber Protect separately. Identifies who to model, who to coach, and whether there's a talent/capacity constraint hiding inside the data.</div>
+        </div>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-num"><span class="num">4</span><span>Week 2–3</span></div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div>
+              <div class="phase-title">ICP &amp; Segment Analysis</div>
+              <div class="phase-question">"Are we chasing the right accounts?"</div>
+            </div>
+            <span class="phase-timing">Week 2–3</span>
+          </div>
+          <ul class="bullet-list">
+            <li>Win rate by customer segment — MSP vs. telecom vs. security/alarm vs. AV integrator</li>
+            <li>Win rate by deal size — are small deals dragging the average or closing faster?</li>
+            <li>Geographic analysis — where are we winning that we're not investing in?</li>
+            <li>Lost-to-competitor breakdown — which competitors are winning in which segments?</li>
+            <li>Cyber Protect ICP deep-dive — what does the ideal buyer actually look like vs. who we're pitching?</li>
+          </ul>
+          <div class="phase-deliverable"><strong>Deliverable:</strong> ICP scoring model for both products. Tells the sales team which opportunities to pursue hard vs. deprioritize — improves time-per-deal and win rate simultaneously.</div>
+        </div>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-num"><span class="num">5</span><span>This Week</span></div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div>
+              <div class="phase-title">Quick Win Pipeline</div>
+              <div class="phase-question">"What can we close in 60–90 days without changing anything structural?"</div>
+            </div>
+            <span class="phase-timing">Start Now</span>
+          </div>
+          <ul class="bullet-list">
+            <li>Apollo 2 re-engagement list — 98 deals / $99K+ MRR where product gaps are now resolved</li>
+            <li>NinjaOne integration is live — 9 accounts / $6,900 MRR should be called this week</li>
+            <li>Stalled open deals &gt;60 days — intervention list for sales leadership</li>
+            <li>Non-product losses from Q3–Q4 2025 — timing/no-show losses worth a re-touch now</li>
+            <li>Cyber Protect cross-sell into existing PSA base — who's on PSA but not Cyber Protect?</li>
+          </ul>
+          <div class="phase-deliverable"><strong>Deliverable:</strong> A prioritized call list for the sales team this week — separate from any structural changes. Revenue that can move now with existing resources.</div>
+        </div>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-num"><span class="num">6</span><span>Week 3</span></div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div>
+              <div class="phase-title">The 5× Math</div>
+              <div class="phase-question">"What exactly has to be true to hit the number?"</div>
+            </div>
+            <span class="phase-timing">Week 3</span>
+          </div>
+          <ul class="bullet-list">
+            <li>Model backward from the 5x target using actual baseline data from Phase 1</li>
+            <li>At current close rate + deal size, what pipeline volume is required monthly?</li>
+            <li>To generate that pipeline, what meeting and outreach volume is needed?</li>
+            <li>At current rep capacity, is this achievable — or does it require headcount?</li>
+            <li>Identify the two or three highest-leverage variables: fix those first</li>
+          </ul>
+          <div class="phase-deliverable"><strong>Deliverable:</strong> The operating math — a management model that tells leadership what has to be true at every funnel stage each month for 5x to happen. Becomes the ongoing operating cadence for sales leadership.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CYBER PROTECT SPECIAL -->
+  <div class="section">
+    <div class="section-label">Special Focus</div>
+    <div class="section-title">Cyber Protect Requires Its Own Playbook</div>
+    <div class="section-sub">5–10x on a newer product line means different questions than a mature PSA motion.</div>
+    <div class="cyber-box">
+      <h3>Before applying the same analysis to Cyber Protect, we need to answer:</h3>
+      <div class="sub">The answers materially change the growth strategy.</div>
+      <div class="cyber-questions">
+        <div class="cyber-q"><span class="icon">🔗</span><span><strong>Standalone or bundled?</strong> Is Cyber Protect almost always sold alongside PSA, or is it a separate ICP and motion? If bundled, the lever is PSA pipeline velocity. If standalone, it needs its own top-of-funnel engine.</span></div>
+        <div class="cyber-q"><span class="icon">👤</span><span><strong>Dedicated reps or shared?</strong> Are the same reps selling both PSA and Cyber Protect? If so, are they prioritizing the larger PSA deals and effectively ignoring Cyber Protect? This is a common failure mode.</span></div>
+        <div class="cyber-q"><span class="icon">📣</span><span><strong>Where are leads coming from?</strong> Inbound, outbound, channel, or referral? If there's minimal top-of-funnel specifically for Cyber Protect, the problem is demand generation — not conversion.</span></div>
+        <div class="cyber-q"><span class="icon">🏢</span><span><strong>Who is the ideal Cyber Protect buyer?</strong> Is it the same IT MSP as PSA, or does it skew toward security-focused firms, alarm companies, or a different segment? Win rate will tell us where the product naturally resonates.</span></div>
+        <div class="cyber-q"><span class="icon">💰</span><span><strong>What's the current economics?</strong> Average deal size, cycle time, and win rate for Cyber Protect vs. PSA — before we set a 5–10x target, we need to know if 5x means 10 more deals a month or 50.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- START TODAY -->
+  <div class="section">
+    <div class="section-label">Starting Point</div>
+    <div class="section-title">Three Queries to Run Today</div>
+    <div class="section-sub">Everything else flows from these three. We run these first before building the full analysis.</div>
+    <div class="today-grid">
+      <div class="today-card">
+        <div class="num">01</div>
+        <h4>Monthly Bookings Trend</h4>
+        <p>PSA and Cyber Protect wins + MRR per month for the last 12 months. Establishes the real baseline and reveals whether we're growing, flat, or declining going into the 5x push.</p>
+      </div>
+      <div class="today-card">
+        <div class="num">02</div>
+        <h4>Open Pipeline by Product &amp; Stage</h4>
+        <p>Current pipeline snapshot — volume, stage distribution, rep ownership, and age of each deal. Tells us immediately whether there's enough coverage to hit near-term targets.</p>
+      </div>
+      <div class="today-card">
+        <div class="num">03</div>
+        <h4>Win Rate &amp; Cycle Time by Rep</h4>
+        <p>Win rate and average days-to-close broken out by rep for PSA and Cyber Protect separately. Finds outliers immediately — the top performers are the model, the low performers are the coaching opportunity.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT WE NEED -->
+  <div class="section">
+    <div class="section-label">To Get Started</div>
+    <div class="section-title">One Input Needed</div>
+    <div class="callout blue">
+      <div class="icon">🙋</div>
+      <p><strong>Confirm: Is Cyber Protect the same as "RMM &amp; EDR" in Salesforce?</strong> The Salesforce data shows a "Product Type" field with values including "RMM &amp; EDR" and "PSA Web." Confirming this mapping ensures the analysis is pointed at the right deals from the start. If there are other product type values that should be included (e.g. "Cyber Protect," "EDR only," etc.), flag those now.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Prepared by Revay · AI Chief of Staff to Evan Rice, Rev.io · February 2026<br>
+  Analysis powered by live Salesforce data (13,953 opportunities)
+</div>
+
+</body>
+</html>
